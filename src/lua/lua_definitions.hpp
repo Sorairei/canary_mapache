@@ -28,6 +28,7 @@ enum LuaDataType {
 	LuaData_Monster,
 	LuaData_Npc,
 	LuaData_Tile,
+	LuaData_Zone,
 	LuaData_Guild,
 };
 
@@ -118,6 +119,7 @@ enum ErrorCode_t {
 	LUA_ERROR_SPELL_NOT_FOUND,
 	LUA_ERROR_ACTION_NOT_FOUND,
 	LUA_ERROR_TALK_ACTION_NOT_FOUND,
+	LUA_ERROR_ZONE_NOT_FOUND,
 };
 
 enum TargetSearchType_t {
@@ -200,6 +202,7 @@ struct LuaVariant {
 
 struct LuaTimerEventDesc {
 		int32_t scriptId = -1;
+		std::string scriptName;
 		int32_t function = -1;
 		std::list<int32_t> parameters;
 		uint32_t eventId = 0;
