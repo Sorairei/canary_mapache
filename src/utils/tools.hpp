@@ -33,6 +33,7 @@ std::string toCamelCase(const std::string &str);
 std::string toPascalCase(const std::string &str);
 std::string toSnakeCase(const std::string &str);
 std::string toKebabCase(const std::string &str);
+std::string toStartCaseWithSpace(const std::string &str);
 
 using StringVector = std::vector<std::string>;
 using IntegerVector = std::vector<int32_t>;
@@ -70,6 +71,7 @@ std::string formatTime(time_t time);
 std::string formatEnumName(std::string_view name);
 std::time_t getTimeNow();
 std::time_t getTimeMsNow();
+std::time_t getTimeUsNow();
 std::string convertIPToString(uint32_t ip);
 
 void trimString(std::string &str);
@@ -121,6 +123,7 @@ ItemAttribute_t stringToItemAttribute(const std::string &str);
 
 const char* getReturnMessage(ReturnValue value);
 
+void sleep_for(uint64_t ms);
 void capitalizeWords(std::string &source);
 void consoleHandlerExit();
 std::string validateNameHouse(const std::string &name);
@@ -178,3 +181,9 @@ static inline Cipbia_Elementals_t getCipbiaElement(CombatType_t combatType) {
 }
 
 std::string formatNumber(uint64_t number);
+
+std::string getPlayerSubjectPronoun(PlayerPronoun_t pronoun, PlayerSex_t sex, const std::string &name);
+std::string getPlayerObjectPronoun(PlayerPronoun_t pronoun, PlayerSex_t sex, const std::string &name);
+std::string getPlayerPossessivePronoun(PlayerPronoun_t pronoun, PlayerSex_t sex, const std::string &name);
+std::string getPlayerReflexivePronoun(PlayerPronoun_t pronoun, PlayerSex_t sex, const std::string &name);
+std::string getVerbForPronoun(PlayerPronoun_t pronoun, bool pastTense = false);

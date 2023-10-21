@@ -11,7 +11,7 @@
 
 #include "pch.hpp"
 
-#include "creatures/players/account/account.hpp"
+#include "account/account.hpp"
 #include "declarations.hpp"
 #include "lua/scripts/luascript.hpp"
 
@@ -34,6 +34,7 @@ private:
 	static void initConditionEnums(lua_State* L);
 	static void initConditionIdEnums(lua_State* L);
 	static void initConditionParamEnums(lua_State* L);
+	static void initAttributeConditionSubIdEnums(lua_State* L);
 	static void initConstMeEnums(lua_State* L);
 	static void initConstAniEnums(lua_State* L);
 	static void initConstPropEnums(lua_State* L);

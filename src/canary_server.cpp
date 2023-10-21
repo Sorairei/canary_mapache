@@ -16,6 +16,7 @@
 #include "creatures/players/storages/storages.hpp"
 #include "database/databasemanager.hpp"
 #include "game/game.hpp"
+#include "game/zones/zone.hpp"
 #include "game/scheduling/dispatcher.hpp"
 #include "game/scheduling/events_scheduler.hpp"
 #include "io/iomarket.hpp"
@@ -46,68 +47,68 @@ CanaryServer::CanaryServer(
 	std::set_new_handler(badAllocationHandler);
 	srand(static_cast<unsigned int>(OTSYS_TIME()));
 
+	g_dispatcher().init();
+
 #ifdef _WIN32
 	SetConsoleTitleA(STATUS_SERVER_NAME);
 #endif
 }
 
 int CanaryServer::run() {
-	g_dispatcher().addTask([this] {
-		try {
-			loadConfigLua();
+	g_dispatcher().addEvent(
+		[this] {
+			try {
+				loadConfigLua();
 
-			logger.info("Server protocol: {}.{}{}", CLIENT_VERSION_UPPER, CLIENT_VERSION_LOWER, g_configManager().getBoolean(OLD_PROTOCOL) ? " and 10x allowed!" : "");
+				logger.info("Server protocol: {}.{}{}", CLIENT_VERSION_UPPER, CLIENT_VERSION_LOWER, g_configManager().getBoolean(OLD_PROTOCOL) ? " and 10x allowed!" : "");
 
-			rsa.start();
-			initializeDatabase();
-			loadModules();
-			setWorldType();
+				rsa.start();
+				initializeDatabase();
+				loadModules();
+				setWorldType();
+				loadMaps();
 
-			std::unique_lock lock(mapLoaderLock);
-			mapSignal.wait(lock, [this] { return loaderMapDone; });
+				logger.info("Initializing gamestate...");
+				g_game().setGameState(GAME_STATE_INIT);
 
-			if (!threadFailMsg.empty()) {
-				throw FailedToInitializeCanary(threadFailMsg);
-			}
+				setupHousesRent();
+				g_game().transferHouseItemsToDepot();
 
-			logger.info("Initializing gamestate...");
-			g_game().setGameState(GAME_STATE_INIT);
+				IOMarket::checkExpiredOffers();
+				IOMarket::getInstance().updateStatistics();
 
-			setupHousesRent();
-
-			IOMarket::checkExpiredOffers();
-			IOMarket::getInstance().updateStatistics();
-
-			logger.info("Loaded all modules, server starting up...");
+				logger.info("Loaded all modules, server starting up...");
 
 #ifndef _WIN32
-			if (getuid() == 0 || geteuid() == 0) {
-				logger.warn("{} has been executed as root user, "
-							"please consider running it as a normal user",
-							STATUS_SERVER_NAME);
-			}
+				if (getuid() == 0 || geteuid() == 0) {
+					logger.warn("{} has been executed as root user, "
+								"please consider running it as a normal user",
+								STATUS_SERVER_NAME);
+				}
 #endif
 
-			g_game().start(&serviceManager);
-			g_game().setGameState(GAME_STATE_NORMAL);
+				g_game().start(&serviceManager);
+				g_game().setGameState(GAME_STATE_NORMAL);
 
-			g_webhook().sendMessage("Server is now online", "Server has successfully started.", WEBHOOK_COLOR_ONLINE);
+				g_webhook().sendMessage("Server is now online", "Server has successfully started.", WEBHOOK_COLOR_ONLINE);
 
-			loaderDone = true;
-			loaderSignal.notify_all();
-		} catch (FailedToInitializeCanary &err) {
-			loadFailed = true;
-			logger.error(err.what());
+				loaderDone = true;
+				loaderSignal.notify_all();
+			} catch (FailedToInitializeCanary &err) {
+				loadFailed = true;
+				logger.error(err.what());
 
-			logger.error("The program will close after pressing the enter key...");
+				logger.error("The program will close after pressing the enter key...");
 
-			if (isatty(STDIN_FILENO)) {
-				getchar();
+				if (isatty(STDIN_FILENO)) {
+					getchar();
+				}
+
+				loaderSignal.notify_all();
 			}
-
-			loaderSignal.notify_all();
-		}
-	});
+		},
+		"CanaryServer::run"
+	);
 
 	loaderSignal.wait(loaderUniqueLock, [this] { return loaderDone || loadFailed; });
 
@@ -146,11 +147,16 @@ void CanaryServer::setWorldType() {
 }
 
 void CanaryServer::loadMaps() const {
-	g_game().loadMainMap(g_configManager().getString(MAP_NAME));
+	try {
+		g_game().loadMainMap(g_configManager().getString(MAP_NAME));
 
-	// If "mapCustomEnabled" is true on config.lua, then load the custom map
-	if (g_configManager().getBoolean(TOGGLE_MAP_CUSTOM)) {
-		g_game().loadCustomMaps(g_configManager().getString(DATA_DIRECTORY) + "/world/custom/");
+		// If "mapCustomEnabled" is true on config.lua, then load the custom map
+		if (g_configManager().getBoolean(TOGGLE_MAP_CUSTOM)) {
+			g_game().loadCustomMaps(g_configManager().getString(DATA_DIRECTORY) + "/world/custom/");
+		}
+		Zone::refreshAll();
+	} catch (const std::exception &err) {
+		throw FailedToInitializeCanary(err.what());
 	}
 }
 
@@ -324,16 +330,6 @@ void CanaryServer::loadModules() {
 	modulesLoadHelper((g_game().loadAppearanceProtobuf(coreFolder + "/items/appearances.dat") == ERROR_NONE), "appearances.dat");
 	modulesLoadHelper(Item::items.loadFromXml(), "items.xml");
 
-	inject<ThreadPool>().addLoad([this] {
-		try {
-			loadMaps();
-		} catch (const std::exception &err) {
-			threadFailMsg = err.what();
-		}
-		loaderMapDone = true;
-		mapSignal.notify_one();
-	});
-
 	auto datapackFolder = g_configManager().getString(DATA_DIRECTORY);
 	logger.debug("Loading core scripts on folder: {}/", coreFolder);
 	// Load first core Lua libs
@@ -361,9 +357,7 @@ void CanaryServer::loadModules() {
 
 	g_game().loadBoostedCreature();
 	g_ioBosstiary().loadBoostedBoss();
-	g_ioprey().InitializeTaskHuntOptions();
-	// Spawn monsters and npcs
-	g_game().map.spawnCreatures();
+	g_ioprey().initializeTaskHuntOptions();
 }
 
 void CanaryServer::modulesLoadHelper(bool loaded, std::string moduleName) {
@@ -375,4 +369,5 @@ void CanaryServer::modulesLoadHelper(bool loaded, std::string moduleName) {
 
 void CanaryServer::shutdown() {
 	inject<ThreadPool>().shutdown();
+	g_dispatcher().shutdown();
 }

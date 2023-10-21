@@ -13,7 +13,8 @@
 #include "database/databasetasks.hpp"
 #include "io/iologindata.hpp"
 #include "game/game.hpp"
-#include "game/scheduling/scheduler.hpp"
+#include "game/scheduling/dispatcher.hpp"
+#include "game/scheduling/save_manager.hpp"
 
 uint8_t IOMarket::getTierFromDatabaseTable(const std::string &string) {
 	auto tier = static_cast<uint8_t>(std::atoi(string.c_str()));
@@ -131,11 +132,10 @@ void IOMarket::processExpiredOffers(DBResult_ptr result, bool) {
 				continue;
 			}
 
-			Player* player = g_game().getPlayerByGUID(playerId);
+			std::shared_ptr<Player> player = g_game().getPlayerByGUID(playerId);
 			if (!player) {
-				player = new Player(nullptr);
+				player = std::make_shared<Player>(nullptr);
 				if (!IOLoginData::loadPlayerById(player, playerId)) {
-					delete player;
 					continue;
 				}
 			}
@@ -144,10 +144,10 @@ void IOMarket::processExpiredOffers(DBResult_ptr result, bool) {
 				uint16_t tmpAmount = amount;
 				while (tmpAmount > 0) {
 					uint16_t stackCount = std::min<uint16_t>(100, tmpAmount);
-					Item* item = Item::CreateItem(itemType.id, stackCount);
+					std::shared_ptr<Item> item = Item::CreateItem(itemType.id, stackCount);
 					if (g_game().internalAddItem(player->getInbox(), item, INDEX_WHEREEVER, FLAG_NOLIMIT) != RETURNVALUE_NOERROR) {
 						g_logger().error("[{}] Ocurred an error to add item with id {} to player {}", __FUNCTION__, itemType.id, player->getName());
-						delete item;
+
 						break;
 					}
 
@@ -166,9 +166,8 @@ void IOMarket::processExpiredOffers(DBResult_ptr result, bool) {
 				}
 
 				for (uint16_t i = 0; i < amount; ++i) {
-					Item* item = Item::CreateItem(itemType.id, subType);
+					std::shared_ptr<Item> item = Item::CreateItem(itemType.id, subType);
 					if (g_game().internalAddItem(player->getInbox(), item, INDEX_WHEREEVER, FLAG_NOLIMIT) != RETURNVALUE_NOERROR) {
-						delete item;
 						break;
 					}
 
@@ -179,13 +178,12 @@ void IOMarket::processExpiredOffers(DBResult_ptr result, bool) {
 			}
 
 			if (player->isOffline()) {
-				IOLoginData::savePlayer(player);
-				delete player;
+				g_saveManager().savePlayer(player);
 			}
 		} else {
 			uint64_t totalPrice = result->getNumber<uint64_t>("price") * amount;
 
-			Player* player = g_game().getPlayerByGUID(playerId);
+			std::shared_ptr<Player> player = g_game().getPlayerByGUID(playerId);
 			if (player) {
 				player->setBankBalance(player->getBankBalance() + totalPrice);
 			} else {
@@ -207,7 +205,7 @@ void IOMarket::checkExpiredOffers() {
 		return;
 	}
 
-	g_scheduler().addEvent(checkExpiredMarketOffersEachMinutes * 60 * 1000, IOMarket::checkExpiredOffers);
+	g_dispatcher().scheduleEvent(checkExpiredMarketOffersEachMinutes * 60 * 1000, IOMarket::checkExpiredOffers, __FUNCTION__);
 }
 
 uint32_t IOMarket::getPlayerOfferCount(uint32_t playerId) {

@@ -34,7 +34,7 @@ public:
 	SpawnMonster &operator=(const SpawnMonster &) = delete;
 
 	bool addMonster(const std::string &name, const Position &pos, Direction dir, uint32_t interval);
-	void removeMonster(Monster* monster);
+	void removeMonster(std::shared_ptr<Monster> monster);
 
 	uint32_t getInterval() const {
 		return interval;
@@ -47,9 +47,15 @@ public:
 	bool isInSpawnMonsterZone(const Position &pos);
 	void cleanup();
 
+	const Position &getCenterPos() const {
+		return centerPos;
+	}
+
+	void setMonsterVariant(const std::string &variant);
+
 private:
 	// map of the spawned creatures
-	using SpawnedMap = std::multimap<uint32_t, Monster*>;
+	using SpawnedMap = std::multimap<uint32_t, std::shared_ptr<Monster>>;
 	using spawned_pair = SpawnedMap::value_type;
 	SpawnedMap spawnedMonsterMap;
 

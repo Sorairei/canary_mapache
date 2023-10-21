@@ -69,6 +69,10 @@ void IOBosstiary::loadBoostedBoss() {
 	while (true) {
 		uint32_t randomIndex = uniform_random(0, static_cast<int32_t>(bossInfo.size()));
 		auto it = std::next(bossInfo.begin(), randomIndex);
+		if (it == bossInfo.end()) {
+			break;
+		}
+
 		const auto &[randomBossId, randomBossName] = *it;
 		if (randomBossId == oldBossRace) {
 			continue;
@@ -98,6 +102,18 @@ void IOBosstiary::loadBoostedBoss() {
 	if (!database.executeQuery(query.str())) {
 		g_logger().error("[{}] Failed to detect boosted boss database. (CODE 03)", __FUNCTION__);
 		return;
+	}
+
+	query.str(std::string());
+	query << "UPDATE `player_bosstiary` SET `bossIdSlotOne` = 0 WHERE `bossIdSlotOne` = " << bossId;
+	if (!database.executeQuery(query.str())) {
+		g_logger().error("[{}] Failed to reset players selected boss slot 1. (CODE 03)", __FUNCTION__);
+	}
+
+	query.str(std::string());
+	query << "UPDATE `player_bosstiary` SET `bossIdSlotTwo` = 0 WHERE `bossIdSlotTwo` = " << bossId;
+	if (!database.executeQuery(query.str())) {
+		g_logger().error("[{}] Failed to reset players selected boss slot 1. (CODE 03)", __FUNCTION__);
 	}
 
 	setBossBoostedName(bossName);
@@ -152,7 +168,7 @@ std::shared_ptr<MonsterType> IOBosstiary::getMonsterTypeByBossRaceId(uint16_t ra
 	return nullptr;
 }
 
-void IOBosstiary::addBosstiaryKill(Player* player, const std::shared_ptr<MonsterType> mtype, uint32_t amount /*= 1*/) const {
+void IOBosstiary::addBosstiaryKill(std::shared_ptr<Player> player, const std::shared_ptr<MonsterType> mtype, uint32_t amount /*= 1*/) const {
 	if (!player || !mtype) {
 		return;
 	}
@@ -164,6 +180,7 @@ void IOBosstiary::addBosstiaryKill(Player* player, const std::shared_ptr<Monster
 
 	auto oldBossLevel = getBossCurrentLevel(player, bossId);
 	player->addBestiaryKillCount(bossId, amount);
+	player->refreshCyclopediaMonsterTracker(true);
 	auto newBossLevel = getBossCurrentLevel(player, bossId);
 	if (oldBossLevel == newBossLevel) {
 		return;
@@ -178,7 +195,6 @@ void IOBosstiary::addBosstiaryKill(Player* player, const std::shared_ptr<Monster
 
 	int32_t value = player->getStorageValue(STORAGEVALUE_PODIUM);
 	if (value != 1 && newBossLevel == 2) {
-
 		auto returnValue = g_game().addItemStoreInbox(player, ITEM_PODIUM_OF_VIGOUR);
 		if (!returnValue) {
 			return;
@@ -218,7 +234,7 @@ uint32_t IOBosstiary::calculateBossPoints(uint16_t lootBonus) const {
 	return static_cast<uint32_t>((2.5 * lootBonus * lootBonus) - (477.5 * lootBonus) + 24000);
 }
 
-phmap::parallel_flat_hash_set<uint16_t> IOBosstiary::getBosstiaryFinished(const Player* player, uint8_t level /* = 1*/) const {
+phmap::parallel_flat_hash_set<uint16_t> IOBosstiary::getBosstiaryFinished(std::shared_ptr<Player> player, uint8_t level /* = 1*/) const {
 	phmap::parallel_flat_hash_set<uint16_t> unlockedMonsters;
 	if (!player) {
 		return unlockedMonsters;
@@ -252,7 +268,7 @@ phmap::parallel_flat_hash_set<uint16_t> IOBosstiary::getBosstiaryFinished(const 
 	return unlockedMonsters;
 }
 
-uint8_t IOBosstiary::getBossCurrentLevel(const Player* player, uint16_t bossId) const {
+uint8_t IOBosstiary::getBossCurrentLevel(std::shared_ptr<Player> player, uint16_t bossId) const {
 	if (bossId == 0 || !player) {
 		return 0;
 	}
@@ -287,7 +303,7 @@ uint32_t IOBosstiary::calculteRemoveBoss(uint8_t removeTimes) const {
 	return 300000 * removeTimes - 500000;
 }
 
-std::vector<uint16_t> IOBosstiary::getBosstiaryCooldownRaceId(const Player* player) const {
+std::vector<uint16_t> IOBosstiary::getBosstiaryCooldownRaceId(std::shared_ptr<Player> player) const {
 	std::vector<uint16_t> bossesCooldownRaceId;
 	if (!player) {
 		return bossesCooldownRaceId;

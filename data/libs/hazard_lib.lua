@@ -1,5 +1,5 @@
 Hazard = {
-	areas = {}
+	areas = {},
 }
 
 function Hazard.new(prototype)
@@ -9,14 +9,16 @@ function Hazard.new(prototype)
 	instance.from = prototype.from
 	instance.to = prototype.to
 	instance.maxLevel = prototype.maxLevel
-	instance.storageMax = prototype.storageMax
-	instance.storageCurrent = prototype.storageCurrent
+	instance.storageMax = prototype.storageMax ---@deprecated
+	instance.storageCurrent = prototype.storageCurrent ---@deprecated
 	instance.crit = prototype.crit
 	instance.dodge = prototype.dodge
 	instance.damageBoost = prototype.damageBoost
 
 	instance.zone = Zone(instance.name)
-	instance.zone:addArea(instance.from, instance.to)
+	if instance.from and instance.to then
+		instance.zone:addArea(instance.from, instance.to)
+	end
 
 	setmetatable(instance, { __index = Hazard })
 
@@ -29,7 +31,7 @@ function Hazard:getHazardPlayerAndPoints(damageMap)
 	for key, _ in pairs(damageMap) do
 		local player = Player(key)
 		if player then
-			local playerHazardPoints = self:getPlayerCurrentLevel()
+			local playerHazardPoints = self:getPlayerCurrentLevel(player)
 
 			if playerHazardPoints < hazardPoints or hazardPoints == -1 then
 				hazardPlayer = player
@@ -46,7 +48,12 @@ function Hazard:getHazardPlayerAndPoints(damageMap)
 end
 
 function Hazard:getPlayerCurrentLevel(player)
-	return player:getStorageValue(self.storageCurrent) < 0 and 0 or player:getStorageValue(self.storageCurrent)
+	if self.storageCurrent then
+		local fromStorage = player:getStorageValue(self.storageCurrent)
+		return fromStorage <= 0 and 1 or fromStorage
+	end
+	local fromKV = player:kv():scoped(self.name):get("currentLevel") or 1
+	return fromKV <= 0 and 1 or fromKV
 end
 
 function Hazard:setPlayerCurrentLevel(player, level)
@@ -54,9 +61,15 @@ function Hazard:setPlayerCurrentLevel(player, level)
 	if level > max then
 		return false
 	end
-	player:setStorageValue(self.storageCurrent, level)
+	if self.storageCurrent then
+		player:setStorageValue(self.storageCurrent, level)
+	else
+		player:kv():scoped(self.name):set("currentLevel", level)
+	end
 	local zones = player:getZones()
-	if not zones then return true end
+	if not zones then
+		return true
+	end
 	for _, zone in ipairs(zones) do
 		local hazard = Hazard.getByName(zone:getName())
 		if hazard then
@@ -71,14 +84,28 @@ function Hazard:setPlayerCurrentLevel(player, level)
 end
 
 function Hazard:getPlayerMaxLevel(player)
-	return player:getStorageValue(self.storageMax) < 0 and 0 or player:getStorageValue(self.storageMax)
+	if self.storageMax then
+		local fromStorage = player:getStorageValue(self.storageMax)
+		return fromStorage <= 0 and 1 or fromStorage
+	end
+	local fromKV = player:kv():scoped(self.name):get("maxLevel")
+	return fromKV <= 0 and 1 or fromKV
 end
 
 function Hazard:levelUp(player)
-	local current = self:getPlayerCurrentLevel(player)
-	local max = self:getPlayerMaxLevel(player)
+	if self.storageMax and self.storageCurrent then
+		local current = self:getPlayerCurrentLevel(player)
+		local max = self:getPlayerMaxLevel(player)
+		if current == max then
+			self:setPlayerMaxLevel(player, max + 1)
+		end
+		return
+	end
+
+	local current = player:kv(self.name):get("currentLevel")
+	local max = player:kv(self.name):get("maxLevel")
 	if current == max then
-		self:setPlayerMaxLevel(player, max + 1)
+		player:kv(self.name):set("maxLevel", max + 1)
 	end
 end
 
@@ -86,12 +113,19 @@ function Hazard:setPlayerMaxLevel(player, level)
 	if level > self.maxLevel then
 		level = self.maxLevel
 	end
-	player:setStorageValue(self.storageMax, level)
+
+	if self.storageMax then
+		player:setStorageValue(self.storageMax, level)
+		return
+	end
+	player:kv():scoped(self.name):set("maxLevel", level)
 end
 
 function Hazard:isInZone(position)
 	local zones = position:getZones()
-	if not zones then return false end
+	if not zones then
+		return false
+	end
 	for _, zone in ipairs(zones) do
 		local hazard = Hazard.getByName(zone:getName())
 		if hazard then
@@ -108,18 +142,21 @@ function Hazard:register()
 
 	local event = ZoneEvent(self.zone)
 
-	function event.onEnter(zone, creature)
+	function event.afterEnter(zone, creature)
 		local player = creature:getPlayer()
-		if not player then return true end
+		if not player then
+			return
+		end
+		logger.debug("Player {} entered hazard zone {}", player:getName(), zone:getName())
 		player:setHazardSystemPoints(self:getPlayerCurrentLevel(player))
-		return true
 	end
 
-	function event.onLeave(zone, creature)
+	function event.afterLeave(zone, creature)
 		local player = creature:getPlayer()
-		if not player then return true end
+		if not player then
+			return
+		end
 		player:setHazardSystemPoints(0)
-		return true
 	end
 
 	Hazard.areas[self.name] = self
@@ -131,7 +168,7 @@ function Hazard.getByName(name)
 end
 
 if not HazardMonster then
-	HazardMonster = { eventName = 'HazardMonster' }
+	HazardMonster = { eventName = "HazardMonster" }
 end
 
 function HazardMonster.onSpawn(monster, position)
@@ -141,7 +178,9 @@ function HazardMonster.onSpawn(monster, position)
 	end
 
 	local zones = position:getZones()
-	if not zones then return true end
+	if not zones then
+		return true
+	end
 	for _, zone in ipairs(zones) do
 		local hazard = Hazard.getByName(zone:getName())
 		if hazard then

@@ -15,74 +15,43 @@
 #include "game/game.hpp"
 #include "creatures/monsters/monster.hpp"
 #include "creatures/players/wheel/player_wheel.hpp"
-#include "io/ioprey.hpp"
-#include "security/argon.hpp"
 
-bool IOLoginData::authenticateAccountPassword(const std::string &accountIdentifier, const std::string &password, account::Account* account) {
-	if (account::ERROR_NO != account->LoadAccountDB(accountIdentifier)) {
-		g_logger().error("{} {} doesn't match any account.", account->getProtocolCompat() ? "Username" : "Email", accountIdentifier);
-		return false;
-	}
-
-	std::string accountPassword;
-	account->GetPassword(&accountPassword);
-
-	Argon2 argon2;
-	if (!argon2.argon(password.c_str(), accountPassword)) {
-		if (transformToSHA1(password) != accountPassword) {
-			g_logger().error("Password '{}' doesn't match any account", accountPassword);
-			return false;
-		}
-	}
-
-	return true;
-}
-
-bool IOLoginData::authenticateAccountSession(const std::string &sessionId, account::Account* account) {
-	Database &db = Database::getInstance();
-	std::ostringstream query;
-	query << "SELECT `account_id`, `expires` FROM `account_sessions` WHERE `id` = " << db.escapeString(transformToSHA1(sessionId));
-	DBResult_ptr result = Database::getInstance().storeQuery(query.str());
-	if (!result) {
-		g_logger().error("Session id {} not found in the database", sessionId);
-		return false;
-	}
-	uint32_t expires = result->getNumber<uint32_t>("expires");
-	if (expires < getTimeNow()) {
-		g_logger().error("Session id {} found, but it is expired", sessionId);
-		return false;
-	}
-	uint32_t accountId = result->getNumber<uint32_t>("account_id");
-	if (account::ERROR_NO != account->LoadAccountDB(accountId)) {
-		g_logger().error("Session id {} found account id {}, but it doesn't match any account.", sessionId, accountId);
-		return false;
-	}
-
-	return true;
-}
-
-bool IOLoginData::gameWorldAuthentication(const std::string &accountIdentifier, const std::string &sessionOrPassword, std::string &characterName, uint32_t* accountId, bool oldProtocol) {
-	account::Account account;
+bool IOLoginData::gameWorldAuthentication(const std::string &accountDescriptor, const std::string &password, std::string &characterName, uint32_t &accountId, bool oldProtocol) {
+	account::Account account(accountDescriptor);
 	account.setProtocolCompat(oldProtocol);
-	std::string authType = g_configManager().getString(AUTH_TYPE);
 
-	if (authType == "session") {
-		if (!IOLoginData::authenticateAccountSession(sessionOrPassword, &account)) {
-			return false;
-		}
-	} else { // authType == "password"
-		if (!IOLoginData::authenticateAccountPassword(accountIdentifier, sessionOrPassword, &account)) {
-			return false;
-		}
-	}
-
-	account::Player player;
-	if (account::ERROR_NO != account.GetAccountPlayer(&player, characterName)) {
-		g_logger().error("Player not found or deleted for account.");
+	if (account::ERROR_NO != account.load()) {
+		g_logger().error("Couldn't load account [{}].", account.getDescriptor());
 		return false;
 	}
 
-	account.GetID(accountId);
+	if (g_configManager().getString(AUTH_TYPE) == "session") {
+		if (!account.authenticate()) {
+			return false;
+		}
+	} else {
+		if (!account.authenticate(password)) {
+			return false;
+		}
+	}
+
+	if (account::ERROR_NO != account.load()) {
+		g_logger().error("Failed to load account [{}]", accountDescriptor);
+		return false;
+	}
+
+	auto [players, result] = account.getAccountPlayers();
+	if (account::ERROR_NO != result) {
+		g_logger().error("Failed to load account [{}] players", accountDescriptor);
+		return false;
+	}
+
+	if (players[characterName] != 0) {
+		g_logger().error("Account [{}] player [{}] not found or deleted.", accountDescriptor, characterName);
+		return false;
+	}
+
+	accountId = account.getID();
 
 	return true;
 }
@@ -95,12 +64,6 @@ account::AccountType IOLoginData::getAccountType(uint32_t accountId) {
 		return account::ACCOUNT_TYPE_NORMAL;
 	}
 	return static_cast<account::AccountType>(result->getNumber<uint16_t>("type"));
-}
-
-void IOLoginData::setAccountType(uint32_t accountId, account::AccountType accountType) {
-	std::ostringstream query;
-	query << "UPDATE `accounts` SET `type` = " << static_cast<uint16_t>(accountType) << " WHERE `id` = " << accountId;
-	Database::getInstance().executeQuery(query.str());
 }
 
 void IOLoginData::updateOnlineStatus(uint32_t guid, bool login) {
@@ -121,23 +84,24 @@ void IOLoginData::updateOnlineStatus(uint32_t guid, bool login) {
 }
 
 // The boolean "disable" will desactivate the loading of information that is not relevant to the preload, for example, forge, bosstiary, etc. None of this we need to access if the player is offline
-bool IOLoginData::loadPlayerById(Player* player, uint32_t id, bool disable /* = true*/) {
+bool IOLoginData::loadPlayerById(std::shared_ptr<Player> player, uint32_t id, bool disable /* = true*/) {
 	Database &db = Database::getInstance();
 	std::ostringstream query;
 	query << "SELECT * FROM `players` WHERE `id` = " << id;
 	return loadPlayer(player, db.storeQuery(query.str()), disable);
 }
 
-bool IOLoginData::loadPlayerByName(Player* player, const std::string &name, bool disable /* = true*/) {
+bool IOLoginData::loadPlayerByName(std::shared_ptr<Player> player, const std::string &name, bool disable /* = true*/) {
 	Database &db = Database::getInstance();
 	std::ostringstream query;
 	query << "SELECT * FROM `players` WHERE `name` = " << db.escapeString(name);
 	return loadPlayer(player, db.storeQuery(query.str()), disable);
 }
 
-bool IOLoginData::loadPlayer(Player* player, DBResult_ptr result, bool disable /* = false*/) {
+bool IOLoginData::loadPlayer(std::shared_ptr<Player> player, DBResult_ptr result, bool disable /* = false*/) {
 	if (!result || !player) {
-		g_logger().warn("[IOLoginData::loadPlayer] - Player or Resultnullptr: {}", __FUNCTION__);
+		std::string nullptrType = !result ? "Result" : "Player";
+		g_logger().warn("[{}] - {} is nullptr", __FUNCTION__, nullptrType);
 		return false;
 	}
 
@@ -221,7 +185,7 @@ bool IOLoginData::loadPlayer(Player* player, DBResult_ptr result, bool disable /
 	}
 }
 
-bool IOLoginData::savePlayer(Player* player) {
+bool IOLoginData::savePlayer(std::shared_ptr<Player> player) {
 	bool success = DBTransaction::executeWithinTransaction([player]() {
 		return savePlayerGuard(player);
 	});
@@ -233,7 +197,7 @@ bool IOLoginData::savePlayer(Player* player) {
 	return success;
 }
 
-bool IOLoginData::savePlayerGuard(Player* player) {
+bool IOLoginData::savePlayerGuard(std::shared_ptr<Player> player) {
 	if (!player) {
 		throw DatabaseException("Player nullptr in function: " + std::string(__FUNCTION__));
 	}
@@ -398,7 +362,9 @@ void IOLoginData::addVIPEntry(uint32_t accountId, uint32_t guid, const std::stri
 
 	std::ostringstream query;
 	query << "INSERT INTO `account_viplist` (`account_id`, `player_id`, `description`, `icon`, `notify`) VALUES (" << accountId << ',' << guid << ',' << db.escapeString(description) << ',' << icon << ',' << notify << ')';
-	db.executeQuery(query.str());
+	if (!db.executeQuery(query.str())) {
+		g_logger().error("Failed to add VIP entry for account %u. QUERY: %s", accountId, query.str().c_str());
+	}
 }
 
 void IOLoginData::editVIPEntry(uint32_t accountId, uint32_t guid, const std::string &description, uint32_t icon, bool notify) {
@@ -406,33 +372,13 @@ void IOLoginData::editVIPEntry(uint32_t accountId, uint32_t guid, const std::str
 
 	std::ostringstream query;
 	query << "UPDATE `account_viplist` SET `description` = " << db.escapeString(description) << ", `icon` = " << icon << ", `notify` = " << notify << " WHERE `account_id` = " << accountId << " AND `player_id` = " << guid;
-	db.executeQuery(query.str());
+	if (!db.executeQuery(query.str())) {
+		g_logger().error("Failed to edit VIP entry for account %u. QUERY: %s", accountId, query.str().c_str());
+	}
 }
 
 void IOLoginData::removeVIPEntry(uint32_t accountId, uint32_t guid) {
 	std::ostringstream query;
 	query << "DELETE FROM `account_viplist` WHERE `account_id` = " << accountId << " AND `player_id` = " << guid;
-	Database::getInstance().executeQuery(query.str());
-}
-
-void IOLoginData::addPremiumDays(Player* player, uint32_t addDays) {
-	std::ostringstream query;
-	time_t lastDay = player->getPremiumLastDay();
-	query << "UPDATE `accounts` SET"
-		  << "`premdays` = `premdays` + " << addDays
-		  << ", `premdays_purchased` = `premdays_purchased` + " << addDays
-		  << ", `lastday` = " << (((lastDay == 0 || lastDay < getTimeNow()) ? getTimeNow() : lastDay) + (addDays * 86400))
-		  << " WHERE `id` = " << player->getAccount();
-
-	Database::getInstance().executeQuery(query.str());
-}
-
-void IOLoginData::removePremiumDays(Player* player, uint32_t removeDays) {
-	std::ostringstream query;
-	uint32_t days = removeDays > player->premiumDays ? player->premiumDays : removeDays;
-	query << "UPDATE `accounts` SET"
-		  << "`premdays` = `premdays` - " << days
-		  << ", `lastday` = " << (player->getPremiumLastDay() - (days * 86400))
-		  << " WHERE `id` = " << player->getAccount();
 	Database::getInstance().executeQuery(query.str());
 }

@@ -52,7 +52,6 @@ bool Imbuements::loadFromXml(bool /* reloading */) {
 				pugi::cast<uint32_t>(baseNode.attribute("removecost").value()),
 				pugi::cast<uint32_t>(baseNode.attribute("duration").value()),
 				pugi::cast<uint16_t>(baseNode.attribute("percent").value())
-
 			);
 
 			// Category/Group
@@ -337,7 +336,7 @@ CategoryImbuement* Imbuements::getCategoryByID(uint16_t id) {
 	return categoryImbuements != categoriesImbuement.end() ? &*categoryImbuements : nullptr;
 }
 
-std::vector<Imbuement*> Imbuements::getImbuements(const Player* player, Item* item) {
+std::vector<Imbuement*> Imbuements::getImbuements(std::shared_ptr<Player> player, std::shared_ptr<Item> item) {
 	std::vector<Imbuement*> imbuements;
 
 	for (auto &[key, value] : imbuementMap) {

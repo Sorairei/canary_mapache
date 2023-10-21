@@ -16,6 +16,7 @@ class Cylinder;
 class Item;
 class Creature;
 class Container;
+class Player;
 
 class Thing {
 public:
@@ -26,46 +27,50 @@ public:
 	Thing(const Thing &) = delete;
 	Thing &operator=(const Thing &) = delete;
 
-	virtual std::string getDescription(int32_t lookDistance) const = 0;
+	virtual std::string getDescription(int32_t lookDistance) = 0;
 
-	virtual Cylinder* getParent() const {
+	virtual std::shared_ptr<Cylinder> getParent() {
 		return nullptr;
 	}
-	virtual Cylinder* getRealParent() const {
+	virtual std::shared_ptr<Cylinder> getRealParent() {
 		return getParent();
 	}
 
-	virtual void setParent(Cylinder*) {
+	virtual void setParent(std::weak_ptr<Cylinder>) {
 		//
 	}
 
-	virtual Tile* getTile();
-	virtual const Tile* getTile() const;
+	virtual std::shared_ptr<Tile> getTile() {
+		return nullptr;
+	}
 
-	virtual const Position &getPosition() const;
+	virtual const Position &getPosition();
 	virtual int32_t getThrowRange() const = 0;
-	virtual bool isPushable() const = 0;
+	virtual bool isPushable() = 0;
 
-	virtual Container* getContainer() {
+	virtual std::shared_ptr<Player> getPlayer() {
 		return nullptr;
 	}
-	virtual const Container* getContainer() const {
+	virtual std::shared_ptr<Container> getContainer() {
 		return nullptr;
 	}
-	virtual Item* getItem() {
+	virtual std::shared_ptr<Container> getContainer() const {
 		return nullptr;
 	}
-	virtual const Item* getItem() const {
+	virtual std::shared_ptr<Item> getItem() {
 		return nullptr;
 	}
-	virtual Creature* getCreature() {
+	virtual std::shared_ptr<Item> getItem() const {
 		return nullptr;
 	}
-	virtual const Creature* getCreature() const {
+	virtual std::shared_ptr<Creature> getCreature() {
+		return nullptr;
+	}
+	virtual std::shared_ptr<Creature> getCreature() const {
 		return nullptr;
 	}
 
-	virtual bool isRemoved() const {
+	virtual bool isRemoved() {
 		return true;
 	}
 };

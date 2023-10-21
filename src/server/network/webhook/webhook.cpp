@@ -11,7 +11,7 @@
 
 #include "server/network/webhook/webhook.hpp"
 #include "config/configmanager.hpp"
-#include "game/scheduling/scheduler.hpp"
+#include "game/scheduling/dispatcher.hpp"
 #include "utils/tools.hpp"
 
 Webhook::Webhook(ThreadPool &threadPool) :
@@ -38,7 +38,9 @@ Webhook &Webhook::getInstance() {
 
 void Webhook::run() {
 	threadPool.addLoad([this] { sendWebhook(); });
-	g_scheduler().addEvent(g_configManager().getNumber(DISCORD_WEBHOOK_DELAY_MS), [this] { run(); });
+	g_dispatcher().scheduleEvent(
+		g_configManager().getNumber(DISCORD_WEBHOOK_DELAY_MS), [this] { run(); }, "Webhook::run"
+	);
 }
 
 void Webhook::sendMessage(const std::string payload, std::string url) {
@@ -121,11 +123,11 @@ std::string Webhook::getPayload(const std::string title, const std::string messa
 }
 
 void Webhook::sendWebhook() {
+	std::scoped_lock lock { taskLock };
 	if (webhooks.empty()) {
 		return;
 	}
 
-	std::scoped_lock lock { taskLock };
 	auto task = webhooks.front();
 
 	std::string response_body;
