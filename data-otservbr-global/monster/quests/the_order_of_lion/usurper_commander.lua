@@ -21,7 +21,7 @@ monster.speed = 125
 monster.manaCost = 0
 
 monster.faction = FACTION_LIONUSURPERS
-monster.enemyFactions = { FACTION_LION, FACTION_PLAYER }
+monster.enemyFactions = { FACTION_PLAYER, FACTION_LION }
 
 monster.changeTarget = {
 	interval = 4000,
@@ -33,7 +33,7 @@ monster.strategiesTarget = {
 }
 
 monster.events = {
-	"usurperCommanderDeath",
+	"UsurperCommanderDeath",
 }
 
 monster.flags = {
@@ -111,21 +111,5 @@ monster.immunities = {
 	{ type = "invisible", condition = true },
 	{ type = "bleed", condition = false },
 }
-
-mType.onAppear = function(monster, creature)
-	if monster ~= creature then
-		return true
-	end
-	local sum
-	for i = 1, 5 do
-		sum = Game.createMonster(monster:getType():getSummonList()[math.random(1, #monster:getType():getSummonList())].name, monster:getPosition(), true)
-		if sum then
-			monster:setSummon(sum)
-			sum:getPosition():sendMagicEffect(CONST_ME_TELEPORT)
-			sum:setStorageValue(Storage.TheOrderOfTheLion.Drume.Commander, 1)
-		end
-	end
-	monster:setStorageValue(Storage.TheOrderOfTheLion.Drume.Commander, 1)
-end
 
 mType:register(monster)

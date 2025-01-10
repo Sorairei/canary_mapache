@@ -25,6 +25,10 @@ monster.corpse = 31923
 monster.speed = 105
 monster.manaCost = 0
 
+monster.events = {
+	"grave_danger_death",
+}
+
 monster.changeTarget = {
 	interval = 4000,
 	chance = 10,
@@ -77,6 +81,7 @@ monster.loot = {
 	{ id = 281, chance = 28000 }, -- giant shimmering pearl (green)
 	{ name = "cobra crest", chance = 11000 },
 	{ name = "skull helmet", chance = 7500 },
+	{ name = "cobra club", chance = 100 },
 }
 
 monster.attacks = {
@@ -111,19 +116,5 @@ monster.immunities = {
 	{ type = "invisible", condition = true },
 	{ type = "bleed", condition = false },
 }
-
-mType.onThink = function(monster, interval) end
-
-mType.onAppear = function(monster, creature)
-	if monster:getType():isRewardBoss() then
-		monster:setReward(true)
-	end
-end
-
-mType.onDisappear = function(monster, creature) end
-
-mType.onMove = function(monster, creature, fromPosition, toPosition) end
-
-mType.onSay = function(monster, creature, type, message) end
 
 mType:register(monster)

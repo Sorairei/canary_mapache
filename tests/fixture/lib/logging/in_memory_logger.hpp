@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -51,20 +51,44 @@ public:
 		return false;
 	}
 
-	void setLevel(const std::string &name) override {
+	void setLevel(const std::string &name) const override {
 		// For the stub, setting a level might not have any behavior.
 		// But you can implement level filtering if you like.
 	}
 
-	[[nodiscard]] std::string getLevel() const override {
+	std::string getLevel() const override {
 		// For simplicity, let's just return a default level. You can adjust as needed.
 		return "DEBUG";
 	}
 
-	virtual void log(std::string lvl, fmt::basic_string_view<char> msg) const override {
-		logs.push_back({ lvl, { msg.data(), msg.size() } });
+	virtual void info(const std::string &msg) const override {
+		logs.push_back({ "info", msg });
 	}
 
+	virtual void warn(const std::string &msg) const override {
+		logs.push_back({ "warning", msg });
+	}
+
+	virtual void error(const std::string &msg) const override {
+		logs.push_back({ "error", msg });
+	}
+
+	virtual void critical(const std::string &msg) const override {
+		logs.push_back({ "critical", msg });
+	}
+
+#if defined(DEBUG_LOG)
+	virtual void debug(const std::string &msg) const override {
+		logs.push_back({ "debug", msg });
+	}
+
+	virtual void trace(const std::string &msg) const override {
+		logs.push_back({ "trace", msg });
+	}
+#else
+	virtual void debug(const std::string &) const override { }
+	virtual void trace(const std::string &) const override { }
+#endif
 	// Helper methods for testing
 	size_t logCount() const {
 		return logs.size();

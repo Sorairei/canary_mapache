@@ -2,7 +2,7 @@ local mType = Game.createMonsterType("Faceless Bane")
 local monster = {}
 
 monster.description = "Faceless Bane"
-monster.experience = 30000
+monster.experience = 20000
 monster.outfit = {
 	lookType = 1119,
 	lookHead = 0,
@@ -20,15 +20,23 @@ monster.corpse = 30013
 monster.speed = 125
 monster.manaCost = 0
 
+monster.events = {
+	"dreamCourtsDeath",
+	"facelessThink",
+}
+
 monster.changeTarget = {
 	interval = 4000,
-	chance = 10,
+	chance = 20,
+}
+
+monster.reflects = {
+	{ type = COMBAT_DEATHDAMAGE, percent = 90 },
 }
 
 monster.bosstiary = {
 	bossRaceId = 1727,
 	bossRace = RARITY_ARCHFOE,
-	storageCooldown = Storage.Quest.U12_00.TheDreamCourts.FacelessBaneTime,
 }
 
 monster.strategiesTarget = {
@@ -132,11 +140,7 @@ monster.elements = {
 	{ type = COMBAT_DROWNDAMAGE, percent = 0 },
 	{ type = COMBAT_ICEDAMAGE, percent = 0 },
 	{ type = COMBAT_HOLYDAMAGE, percent = 0 },
-	{ type = COMBAT_DEATHDAMAGE, percent = 99 },
-}
-
-monster.heals = {
-	{ type = COMBAT_DEATHDAMAGE, percent = 100 },
+	{ type = COMBAT_DEATHDAMAGE, percent = 50 },
 }
 
 monster.immunities = {
@@ -145,19 +149,5 @@ monster.immunities = {
 	{ type = "invisible", condition = true },
 	{ type = "bleed", condition = false },
 }
-
-mType.onThink = function(monster, interval) end
-
-mType.onAppear = function(monster, creature)
-	if monster:getType():isRewardBoss() then
-		monster:setReward(true)
-	end
-end
-
-mType.onDisappear = function(monster, creature) end
-
-mType.onMove = function(monster, creature, fromPosition, toPosition) end
-
-mType.onSay = function(monster, creature, type, message) end
 
 mType:register(monster)

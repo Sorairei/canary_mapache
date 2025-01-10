@@ -43,6 +43,12 @@
     <ClInclude Include="..\src\creatures\players\storages\storages.hpp" />
     <ClInclude Include="..\src\creatures\players\player.hpp" />
     <ClInclude Include="..\src\creatures\players\vocations\vocation.hpp" />
+    <ClInclude Include="..\src\creatures\players\wheel\wheel_gems.hpp" />
+    <ClInclude Include="..\src\creatures\players\achievement\player_achievement.hpp" />
+    <ClInclude Include="..\src\creatures\players\cyclopedia\player_badge.hpp" />
+    <ClInclude Include="..\src\creatures\players\cyclopedia\player_cyclopedia.hpp" />
+    <ClInclude Include="..\src\creatures\players\cyclopedia\player_title.hpp" />
+    <ClInclude Include="..\src\creatures\players\vip\player_vip.hpp" />
     <ClInclude Include="..\src\creatures\players\wheel\player_wheel.hpp" />
     <ClInclude Include="..\src\creatures\players\wheel\wheel_definitions.hpp" />
     <ClInclude Include="..\src\database\database.hpp" />
@@ -108,6 +114,7 @@
     <ClInclude Include="..\src\lib\di\soft_singleton.hpp" />
     <ClInclude Include="..\src\lib\logging\logger.hpp" />
     <ClInclude Include="..\src\lib\logging\log_with_spd_log.hpp" />
+    <ClInclude Include="..\src\lib\metrics\metrics.hpp" />
     <ClInclude Include="..\src\lib\thread\thread_pool.hpp" />
     <ClInclude Include="..\src\lib\messaging\command.hpp" />
     <ClInclude Include="..\src\lib\messaging\event.hpp" />
@@ -130,12 +137,12 @@
     <ClInclude Include="..\src\lua\functions\core\game\zone_functions.hpp" />
     <ClInclude Include="..\src\lua\functions\core\game\lua_enums.hpp" />
     <ClInclude Include="..\src\lua\functions\core\game\modal_window_functions.hpp" />
-    <ClInclude Include="..\src\lua\functions\core\libs\bit_functions.hpp" />
     <ClInclude Include="..\src\lua\functions\core\libs\core_libs_functions.hpp" />
     <ClInclude Include="..\src\lua\functions\core\libs\kv_functions.hpp" />
     <ClInclude Include="..\src\lua\functions\core\libs\db_functions.hpp" />
     <ClInclude Include="..\src\lua\functions\core\libs\result_functions.hpp" />
     <ClInclude Include="..\src\lua\functions\core\libs\logger_functions.hpp" />
+    <ClInclude Include="..\src\lua\functions\core\libs\metrics_functions.hpp" />
     <ClInclude Include="..\src\lua\functions\core\network\core_network_functions.hpp" />
     <ClInclude Include="..\src\lua\functions\core\network\network_message_functions.hpp" />
     <ClInclude Include="..\src\lua\functions\core\network\webhook_functions.hpp" />
@@ -197,9 +204,7 @@
     <ClInclude Include="..\src\map\spectators.hpp" />
     <ClInclude Include="..\src\map\town.hpp" />
     <ClInclude Include="..\src\map\utils\astarnodes.hpp" />
-    <ClInclude Include="..\src\map\utils\qtreenode.hpp" />
-    <ClInclude Include="..\src\protobuf\appearances.pb.h" />
-    <ClInclude Include="..\src\protobuf\kv.pb.h" />
+    <ClInclude Include="..\src\map\utils\mapsector.hpp" />
     <ClInclude Include="..\src\security\rsa.hpp" />
     <ClInclude Include="..\src\server\network\connection\connection.hpp" />
     <ClInclude Include="..\src\server\network\message\networkmessage.hpp" />
@@ -226,6 +231,7 @@
     <ClInclude Include="..\src\utils\wildcardtree.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\account\account_repository.cpp" />
     <ClCompile Include="..\src\account\account_repository_db.cpp" />
     <ClCompile Include="..\src\config\configmanager.cpp" />
     <ClCompile Include="..\src\creatures\appearance\mounts\mounts.cpp" />
@@ -252,6 +258,12 @@
     <ClCompile Include="..\src\creatures\players\storages\storages.cpp" />
     <ClCompile Include="..\src\creatures\players\player.cpp" />
     <ClCompile Include="..\src\creatures\players\vocations\vocation.cpp" />
+    <ClCompile Include="..\src\creatures\players\wheel\wheel_gems.cpp" />
+    <ClCompile Include="..\src\creatures\players\achievement\player_achievement.cpp" />
+    <ClCompile Include="..\src\creatures\players\cyclopedia\player_badge.cpp" />
+    <ClCompile Include="..\src\creatures\players\cyclopedia\player_cyclopedia.cpp" />
+    <ClCompile Include="..\src\creatures\players\cyclopedia\player_title.cpp" />
+    <ClCompile Include="..\src\creatures\players\vip\player_vip.cpp" />
     <ClCompile Include="..\src\creatures\players\wheel\player_wheel.cpp" />
     <ClCompile Include="..\src\database\database.cpp" />
     <ClCompile Include="..\src\database\databasemanager.cpp" />
@@ -299,10 +311,13 @@
     <ClCompile Include="..\src\items\trashholder.cpp" />
     <ClCompile Include="..\src\items\weapons\weapons.cpp" />
     <ClCompile Include="..\src\kv\value_wrapper.cpp" />
+    <ClCompile Include="..\src\kv\value_wrapper_proto.cpp" />
     <ClCompile Include="..\src\kv\kv_sql.cpp" />
     <ClCompile Include="..\src\kv\kv.cpp" />
     <ClCompile Include="..\src\lib\di\soft_singleton.cpp" />
+    <ClCompile Include="..\src\lib\logging\logger.cpp" />
     <ClCompile Include="..\src\lib\logging\log_with_spd_log.cpp" />
+    <ClCompile Include="..\src\lib\metrics\metrics.cpp" />
     <ClCompile Include="..\src\lib\thread\thread_pool.cpp" />
     <ClCompile Include="..\src\lua\callbacks\creaturecallback.cpp" />
     <ClCompile Include="..\src\lua\callbacks\event_callback.cpp" />
@@ -320,11 +335,11 @@
     <ClCompile Include="..\src\lua\functions\core\game\zone_functions.cpp" />
     <ClCompile Include="..\src\lua\functions\core\game\lua_enums.cpp" />
     <ClCompile Include="..\src\lua\functions\core\game\modal_window_functions.cpp" />
-    <ClCompile Include="..\src\lua\functions\core\libs\bit_functions.cpp" />
     <ClCompile Include="..\src\lua\functions\core\libs\kv_functions.cpp" />
     <ClCompile Include="..\src\lua\functions\core\libs\db_functions.cpp" />
     <ClCompile Include="..\src\lua\functions\core\libs\result_functions.cpp" />
     <ClCompile Include="..\src\lua\functions\core\libs\logger_functions.cpp" />
+    <ClCompile Include="..\src\lua\functions\core\libs\metrics_functions.cpp" />
     <ClCompile Include="..\src\lua\functions\core\network\network_message_functions.cpp" />
     <ClCompile Include="..\src\lua\functions\core\network\webhook_functions.cpp" />
     <ClCompile Include="..\src\lua\functions\creatures\combat\combat_functions.cpp" />
@@ -376,19 +391,11 @@
     <ClCompile Include="..\src\map\house\housetile.cpp" />
     <ClCompile Include="..\src\map\spectators.cpp" />
     <ClCompile Include="..\src\map\utils\astarnodes.cpp" />
-    <ClCompile Include="..\src\map\utils\qtreenode.cpp" />
+    <ClCompile Include="..\src\map\utils\mapsector.cpp" />
     <ClCompile Include="..\src\map\map.cpp" />
     <ClCompile Include="..\src\map\mapcache.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\canary_server.cpp" />
-    <ClCompile Include="..\src\protobuf\appearances.pb.cc">
-      <IncludeInUnityFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</IncludeInUnityFile>
-      <IncludeInUnityFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</IncludeInUnityFile>
-    </ClCompile>
-    <ClCompile Include="..\src\protobuf\kv.pb.cc">
-      <IncludeInUnityFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</IncludeInUnityFile>
-      <IncludeInUnityFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</IncludeInUnityFile>
-    </ClCompile>
     <ClCompile Include="..\src\security\argon.cpp" />
     <ClCompile Include="..\src\security\rsa.cpp" />
     <ClCompile Include="..\src\server\network\connection\connection.cpp" />
@@ -406,9 +413,10 @@
     <ClCompile Include="..\src\utils\wildcardtree.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\pch.hpp">
+    <ClCompile Include="..\src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -420,6 +428,7 @@
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <OutDir>$(ProjectDir)../</OutDir>
+    <SourcePath>$(OutDirFullPath)src</SourcePath>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -474,7 +483,7 @@
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
-    <VcpkgAutoLink>false</VcpkgAutoLink>
+    <VcpkgAutoLink>true</VcpkgAutoLink>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <VcpkgInstalledDir>vcpkg_installed</VcpkgInstalledDir>
@@ -484,34 +493,41 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Vcpkg">
     <VcpkgInstalledDir>vcpkg_installed</VcpkgInstalledDir>
     <VcpkgTriplet>x64-windows</VcpkgTriplet>
+    <VcpkgUseStatic>false</VcpkgUseStatic>
+    <VcpkgUseMD>false</VcpkgUseMD>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>
-      $(VcpkgRoot)\installed\$(VcpkgTriplet)\include\;
-      vcpkg_installed\$(VcpkgTriplet)\include\
+      $(GITHUB_WORKSPACE)\vcpkg\installed\$(VcpkgTriplet)\include\;
+      vcpkg_installed\$(VcpkgTriplet)\include\;
+      generated
       </AdditionalIncludeDirectories>
       <WarningLevel>Level1</WarningLevel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PrecompiledHeaderFile />
+      <PrecompiledHeaderFile>pch.hpp</PrecompiledHeaderFile>
       <SupportJustMyCode>true</SupportJustMyCode>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <IncludeInUnityFile>true</IncludeInUnityFile>
       <OpenMPSupport>true</OpenMPSupport>
+      <LanguageStandard_C>Default</LanguageStandard_C>
+      <AdditionalOptions>/Zc:__cplusplus /fsanitize=address /utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>
-      $(VcpkgRoot)\installed\$(VcpkgTriplet)\lib\;
+      $(GITHUB_WORKSPACE)\vcpkg\installed\$(VcpkgTriplet)\lib\;
       vcpkg_installed\$(VcpkgTriplet)\lib\
       </AdditionalLibraryDirectories>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <GenerateMapFile>false</GenerateMapFile>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <AdditionalDependencies>$(CANARY_LIBDEPS)</AdditionalDependencies>
@@ -522,23 +538,27 @@
       <Optimization>MaxSpeed</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>
-      $(VcpkgRoot)\installed\$(VcpkgTriplet)\include\;
-      vcpkg_installed\$(VcpkgTriplet)\include\
+      $(GITHUB_WORKSPACE)\vcpkg\installed\$(VcpkgTriplet)\include\;
+      vcpkg_installed\$(VcpkgTriplet)\include\;
+      generated
       </AdditionalIncludeDirectories>
       <WarningLevel>Level1</WarningLevel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PrecompiledHeaderFile />
+      <PrecompiledHeaderFile>pch.hpp</PrecompiledHeaderFile>
       <SupportJustMyCode>true</SupportJustMyCode>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <IncludeInUnityFile>true</IncludeInUnityFile>
       <OpenMPSupport>true</OpenMPSupport>
+      <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>_DISABLE_VECTOR_ANNOTATION;_DISABLE_STRING_ANNOTATION;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>
-      $(VcpkgRoot)\installed\$(VcpkgTriplet)\lib\;
+      $(GITHUB_WORKSPACE)\vcpkg\installed\$(VcpkgTriplet)\lib\;
       vcpkg_installed\$(VcpkgTriplet)\lib\
       </AdditionalLibraryDirectories>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -548,6 +568,42 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
   </ItemDefinitionGroup>
+  <Target Name="EnsureGeneratedDirectoryExists" BeforeTargets="ProtoCompile">
+    <MakeDir Directories="generated" />
+  </Target>
+  <PropertyGroup>
+    <RunProtoCompile>true</RunProtoCompile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(GITHUB_WORKSPACE)' != ''">
+    <RunProtoCompile>false</RunProtoCompile>
+  </PropertyGroup>
+  <Target Name="DisplayRunProtoCompileValue" BeforeTargets="ProtoCompile">
+    <Message Text="RunProtoCompile value: $(RunProtoCompile)" Importance="high" />
+  </Target>
+  <PropertyGroup Condition="'$(RunProtoCompile)'=='true'">
+    <ProtocPath>$(ProjectDir)vcpkg_installed\$(VcpkgTriplet)\tools\protobuf\protoc</ProtocPath>
+    <ProtoPath>..\$(SourcePath)\protobuf</ProtoPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RunProtoCompile)'=='false'">
+    <ProtocPath>$(ProjectDir)vcpkg_installed\$(VcpkgTriplet)\tools\protobuf\protoc</ProtocPath>
+    <ProtoPath>$(GITHUB_WORKSPACE)\src\protobuf</ProtoPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProtoFiles Include="$(ProtoPath)\*.proto" />
+  </ItemGroup>
+  <Target Name="ProtoCompile" BeforeTargets="PrepareForBuild" DependsOnTargets="VcpkgInstallManifestDependencies">
+    <Exec Command="$(ProtocPath) --proto_path=$(ProtoPath) --cpp_out=generated %(ProtoFiles.Identity)" />
+    <ItemGroup>
+      <ClCompile Include="generated\%(ProtoFiles.Filename).pb.cc">
+        <IncludeInUnityFile>false</IncludeInUnityFile>
+        <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      </ClCompile>
+      <ClInclude Include="generated\%(ProtoFiles.Filename).pb.h">
+        <IncludeInUnityFile>false</IncludeInUnityFile>
+        <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      </ClInclude>
+    </ItemGroup>
+  </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

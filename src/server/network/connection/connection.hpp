@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -10,7 +10,7 @@
 #pragma once
 
 #include "declarations.hpp"
-#include "lib/di/container.hpp"
+// TODO: Remove circular includes (maybe shared_ptr?)
 #include "server/network/message/networkmessage.hpp"
 
 static constexpr int32_t CONNECTION_WRITE_TIMEOUT = 30;
@@ -28,16 +28,15 @@ using Service_ptr = std::shared_ptr<ServiceBase>;
 class ServicePort;
 using ServicePort_ptr = std::shared_ptr<ServicePort>;
 using ConstServicePort_ptr = std::shared_ptr<const ServicePort>;
+class NetworkMessage;
 
 class ConnectionManager {
 public:
 	ConnectionManager() = default;
 
-	static ConnectionManager &getInstance() {
-		return inject<ConnectionManager>();
-	}
+	static ConnectionManager &getInstance();
 
-	Connection_ptr createConnection(asio::io_service &io_service, ConstServicePort_ptr servicePort);
+	Connection_ptr createConnection(asio::io_service &io_service, const ConstServicePort_ptr &servicePort);
 	void releaseConnection(const Connection_ptr &connection);
 	void closeAll();
 
@@ -61,9 +60,10 @@ public:
 	void close(bool force = false);
 	// Used by protocols that require server to send first
 	void accept(Protocol_ptr protocolPtr);
-	void accept(bool toggleParseHeader = true);
+	void acceptInternal(bool toggleParseHeader = true);
 
 	void resumeWork();
+
 	void send(const OutputMessage_ptr &outputMessage);
 
 	uint32_t getIP();
@@ -85,8 +85,6 @@ private:
 		return socket;
 	}
 
-	NetworkMessage msg;
-
 	asio::high_resolution_timer readTimer;
 	asio::high_resolution_timer writeTimer;
 
@@ -99,7 +97,9 @@ private:
 
 	asio::ip::tcp::socket socket;
 
-	time_t timeConnected;
+	NetworkMessage m_msg;
+
+	std::time_t timeConnected = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	uint32_t packetsSent = 0;
 	uint32_t ip = 1;
 

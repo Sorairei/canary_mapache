@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -19,21 +19,12 @@
 #include <iterator>
 #include <type_traits>
 
-class ValueWrapper;
-
-using StringType = std::string;
-using BooleanType = bool;
-using IntType = int;
-using DoubleType = double;
-using ArrayType = std::vector<ValueWrapper>;
-using MapType = phmap::flat_hash_map<std::string, std::shared_ptr<ValueWrapper>>;
-
-using ValueVariant = std::variant<StringType, BooleanType, IntType, DoubleType, ArrayType, MapType>;
+#include "kv/kv_definitions.hpp"
 
 class ValueWrapper {
 public:
 	explicit ValueWrapper(uint64_t timestamp = 0);
-	explicit(false) ValueWrapper(const ValueVariant &value, uint64_t timestamp = 0);
+	explicit(false) ValueWrapper(ValueVariant value, uint64_t timestamp = 0);
 	explicit(false) ValueWrapper(const std::string &value, uint64_t timestamp = 0);
 	explicit(false) ValueWrapper(bool value, uint64_t timestamp = 0);
 	explicit(false) ValueWrapper(int value, uint64_t timestamp = 0);
@@ -49,7 +40,21 @@ public:
 
 	template <typename T>
 	T get() const {
-		return std::get<T>(data_);
+		static_assert(std::is_same_v<T, StringType> || std::is_same_v<T, BooleanType> || std::is_same_v<T, IntType> || std::is_same_v<T, DoubleType> || std::is_same_v<T, ArrayType> || std::is_same_v<T, MapType>, "Invalid type T");
+
+		if (std::holds_alternative<T>(data_)) {
+			return std::get<T>(data_);
+		}
+		return T {};
+	}
+
+	double getNumber() const {
+		if (std::holds_alternative<IntType>(data_)) {
+			return static_cast<double>(std::get<IntType>(data_));
+		} else if (std::holds_alternative<DoubleType>(data_)) {
+			return std::get<DoubleType>(data_);
+		}
+		return 0.0;
 	}
 
 	const ValueVariant &getVariant() const {
@@ -136,6 +141,7 @@ private:
 
 template <typename T>
 T ValueWrapper::get(const std::string &key) const {
+	static_assert(std::is_same_v<T, StringType> || std::is_same_v<T, BooleanType> || std::is_same_v<T, IntType> || std::is_same_v<T, DoubleType> || std::is_same_v<T, ArrayType> || std::is_same_v<T, MapType>, "Invalid type T");
 	auto optValue = get(key);
 	if (optValue.has_value()) {
 		if (auto pval = std::get_if<T>(&optValue->data_)) {
@@ -147,6 +153,7 @@ T ValueWrapper::get(const std::string &key) const {
 
 template <typename T>
 T ValueWrapper::get(size_t index) const {
+	static_assert(std::is_same_v<T, StringType> || std::is_same_v<T, BooleanType> || std::is_same_v<T, IntType> || std::is_same_v<T, DoubleType> || std::is_same_v<T, ArrayType> || std::is_same_v<T, MapType>, "Invalid type T");
 	auto optValue = get(index);
 	if (optValue.has_value()) {
 		if (auto pval = std::get_if<T>(&optValue->data_)) {
@@ -162,7 +169,7 @@ inline bool ValueWrapper::operator==(const ValueWrapper &rhs) const {
 
 inline bool operator==(const ValueVariant &lhs, const ValueVariant &rhs) {
 	return std::visit(
-		[](const auto &a, const auto &b) {
+		[](const auto &a, const auto &b) -> bool {
 			using A = std::decay_t<decltype(a)>;
 			using B = std::decay_t<decltype(b)>;
 
@@ -183,6 +190,8 @@ inline bool operator==(const ValueVariant &lhs, const ValueVariant &rhs) {
 			if constexpr (std::is_same_v<A, B>) {
 				return a == b;
 			}
+
+			return false;
 		},
 		lhs, rhs
 	);

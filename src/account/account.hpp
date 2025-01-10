@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -9,149 +9,133 @@
 
 #pragma once
 
-#include "account/account_repository_db.hpp"
-#include "config/configmanager.hpp"
-#include "utils/definitions.hpp"
-#include "security/argon.hpp"
+struct AccountInfo;
 
-namespace account {
-	class Account {
-	public:
-		explicit Account(const uint32_t &id);
-		explicit Account(std::string descriptor);
+enum class CoinType : uint8_t;
+enum class CoinTransactionType : uint8_t;
+enum class AccountErrors_t : uint8_t;
+enum AccountType : uint8_t;
 
-		/** Coins
-		 * @brief Get the amount of coins that the account has from database.
-		 *
-		 * @param type Type of the coin
-		 *
-		 * @return uint32_t Number of coins
-		 * @return error_t ERROR_NO(0) Success, otherwise Fail.
-		 */
-		[[nodiscard]] std::tuple<uint32_t, error_t> getCoins(const CoinType &type) const;
+class Account {
+public:
+	explicit Account(const uint32_t &id);
+	explicit Account(std::string descriptor);
 
-		/**
-		 * @brief Add coins to the account.
-		 *
-		 * @param type Type of the coin
-		 * @param amount Amount of coins to be added
-		 * @return error_t ERROR_NO(0) Success, otherwise Fail.
-		 */
-		error_t addCoins(const CoinType &type, const uint32_t &amount, const std::string &detail = "ADD Coins");
+	~Account() = default;
 
-		/**
-		 * @brief Removes coins from the account.
-		 *
-		 * @param type Type of the coin
-		 * @param amount Amount of coins to be removed
-		 * @return error_t ERROR_NO(0) Success, otherwise Fail.
-		 */
-		error_t removeCoins(const CoinType &type, const uint32_t &amount, const std::string &detail = "REMOVE Coins");
+	/** Coins
+	 * @brief Get the amount of coins that the account has from database.
+	 *
+	 * @param type Type of the coin
+	 *
+	 * @return uint32_t Number of coins
+	 * @return AccountErrors_t AccountErrors_t::Ok(0) Success, otherwise Fail.
+	 */
+	[[nodiscard]] std::tuple<uint32_t, AccountErrors_t> getCoins(CoinType type) const;
 
-		/**
-		 * @brief Registers a coin transaction.
-		 *
-		 * @param type Type of the coin
-		 * @param amount Amount of coins to be added
-		 * @param detail Detail of the transaction
-		 */
-		void registerCoinTransaction(const CoinTransactionType &transactionType, const CoinType &type, const uint32_t &amount, const std::string &detail);
+	/**
+	 * @brief Add coins to the account.
+	 *
+	 * @param type Type of the coin
+	 * @param amount Amount of coins to be added
+	 * @return AccountErrors_t AccountErrors_t::Ok(0) Success, otherwise Fail.
+	 */
+	AccountErrors_t addCoins(CoinType type, const uint32_t &amount, const std::string &detail = "ADD Coins");
 
-		/***************************************************************************
-		 * Account Load/Save
-		 **************************************************************************/
+	/**
+	 * @brief Removes coins from the account.
+	 *
+	 * @param type Type of the coin
+	 * @param amount Amount of coins to be removed
+	 * @return AccountErrors_t AccountErrors_t::Ok(0) Success, otherwise Fail.
+	 */
+	AccountErrors_t removeCoins(CoinType type, const uint32_t &amount, const std::string &detail = "REMOVE Coins");
 
-		/**
-		 * @brief Save Account.
-		 *
-		 * @return error_t ERROR_NO(0) Success, otherwise Fail.
-		 */
-		error_t save();
+	/**
+	 * @brief Registers a coin transaction.
+	 *
+	 * @param type Type of the coin
+	 * @param amount Amount of coins to be added
+	 * @param detail Detail of the transaction
+	 */
+	void registerCoinTransaction(CoinTransactionType transactionType, CoinType type, const uint32_t &amount, const std::string &detail);
 
-		/**
-		 * @brief Load Account Information.
-		 *
-		 * @return error_t ERROR_NO(0) Success, otherwise Fail.
-		 */
-		error_t load();
+	/***************************************************************************
+	 * Account Load/Save
+	 **************************************************************************/
 
-		/**
-		 * @brief Re-Load Account Information to get update information(mainly the
-		 * players list).
-		 *
-		 * @return error_t ERROR_NO(0) Success, otherwise Fail.
-		 */
-		error_t reload();
+	/**
+	 * @brief Save Account.
+	 *
+	 * @return AccountErrors_t AccountErrors_t::Ok(0) Success, otherwise Fail.
+	 */
+	AccountErrors_t save() const;
 
-		/***************************************************************************
-		 * Setters and Getters
-		 **************************************************************************/
+	/**
+	 * @brief Load Account Information.
+	 *
+	 * @return AccountErrors_t AccountErrors_t::Ok(0) Success, otherwise Fail.
+	 */
+	AccountErrors_t load();
 
-		[[nodiscard]] inline uint32_t getID() const {
-			return m_account.id;
-		};
+	/**
+	 * @brief Re-Load Account Information to get update information(mainly the
+	 * players list).
+	 *
+	 * @return AccountErrors_t AccountErrors_t::Ok(0) Success, otherwise Fail.
+	 */
+	AccountErrors_t reload();
 
-		/**
-		 * @brief Get the Descriptor object
-		 * @warning Descriptors are credentials that may be used to login into the account. DO NOT BPUBLISH THIS INFORMATION.
-		 *
-		 * @return std::string
-		 */
-		inline std::string getDescriptor() const {
-			return m_descriptor;
-		}
+	/***************************************************************************
+	 * Setters and Getters
+	 **************************************************************************/
 
-		std::string getPassword();
+	[[nodiscard]] uint32_t getID() const;
 
-		void addPremiumDays(const int32_t &days);
-		void setPremiumDays(const int32_t &days);
-		[[nodiscard]] inline uint32_t getPremiumRemainingDays() const {
-			return m_account.premiumRemainingDays;
-		}
+	/**
+	 * @brief Get the Descriptor object
+	 * @warning Descriptors are credentials that may be used to login into the account. DO NOT BPUBLISH THIS INFORMATION.
+	 *
+	 * @return std::string
+	 */
+	std::string getDescriptor() const;
 
-		[[nodiscard]] inline uint32_t getPremiumDaysPurchased() const {
-			return m_account.premiumDaysPurchased;
-		}
+	std::string getPassword();
 
-		[[nodiscard]] uint32_t getAccountAgeInDays() const;
+	void addPremiumDays(const int32_t &days);
+	void setPremiumDays(const int32_t &days);
+	[[nodiscard]] uint32_t getPremiumRemainingDays() const;
 
-		[[nodiscard]] inline time_t getPremiumLastDay() const {
-			return m_account.premiumLastDay;
-		}
+	[[nodiscard]] uint32_t getPremiumDaysPurchased() const;
 
-		error_t setAccountType(const AccountType &accountType);
-		[[nodiscard]] inline AccountType getAccountType() const {
-			return m_account.accountType;
-		}
+	[[nodiscard]] uint32_t getAccountAgeInDays() const;
 
-		void updatePremiumTime();
+	[[nodiscard]] time_t getPremiumLastDay() const;
 
-		std::tuple<phmap::flat_hash_map<std::string, uint64_t>, error_t> getAccountPlayers() const;
+	AccountErrors_t setAccountType(AccountType accountType);
+	[[nodiscard]] AccountType getAccountType() const;
 
-		// Old protocol compat
-		void setProtocolCompat(bool toggle) {
-			m_account.oldProtocol = toggle;
-		}
+	void updatePremiumTime();
 
-		bool getProtocolCompat() const {
-			return m_account.oldProtocol;
-		}
+	std::tuple<phmap::flat_hash_map<std::string, uint64_t>, AccountErrors_t> getAccountPlayers() const;
 
-		bool authenticate();
-		bool authenticate(const std::string &secret);
+	void setHouseBidId(uint32_t houseId);
+	uint32_t getHouseBidId() const;
 
-		bool authenticateSession();
+	// Old protocol compat
+	void setProtocolCompat(bool toggle);
 
-		bool authenticatePassword(const std::string &password);
+	bool getProtocolCompat() const;
 
-	private:
-		std::string m_descriptor;
-		AccountInfo m_account;
-		bool m_accLoaded = false;
+	bool authenticate();
+	bool authenticate(const std::string &secret);
 
-		Logger &logger = inject<Logger>();
-		ConfigManager &configManager = inject<ConfigManager>();
-		AccountRepository &accountRepository = inject<AccountRepository>();
-	};
+	bool authenticateSession();
 
-} // namespace account
+	bool authenticatePassword(const std::string &password);
+
+private:
+	std::string m_descriptor;
+	std::unique_ptr<AccountInfo> m_account;
+	bool m_accLoaded = false;
+};

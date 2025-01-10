@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -11,6 +11,7 @@
 
 #include "declarations.hpp"
 
+// TODO: move to .cpp for avoid circular dependencies
 #include "config/configmanager.hpp"
 #include "map/house/house.hpp"
 #include "items/item.hpp"
@@ -157,8 +158,8 @@ private:
 
 class IOMapException : public std::exception {
 public:
-	explicit IOMapException(const std::string &msg) :
-		message(msg) { }
+	explicit IOMapException(std::string msg) :
+		message(std::move(msg)) { }
 
 	const char* what() const noexcept override {
 		return message.c_str();

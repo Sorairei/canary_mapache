@@ -1,20 +1,20 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
  * Website: https://docs.opentibiabr.com/
  */
 
-#include "pch.hpp"
+#include "game/zones/zone.hpp"
 
-#include "zone.hpp"
 #include "game/game.hpp"
 #include "creatures/monsters/monster.hpp"
 #include "creatures/npcs/npc.hpp"
 #include "creatures/players/player.hpp"
 #include "utils/pugicast.hpp"
+#include "kv/kv.hpp"
 
 phmap::parallel_flat_hash_map<std::string, std::shared_ptr<Zone>> Zone::zones = {};
 phmap::parallel_flat_hash_map<uint32_t, std::shared_ptr<Zone>> Zone::zonesByID = {};
@@ -26,7 +26,7 @@ std::shared_ptr<Zone> Zone::addZone(const std::string &name, uint32_t zoneID /* 
 		return nullZone;
 	}
 	if (zoneID != 0 && zonesByID.contains(zoneID)) {
-		g_logger().debug("Found with ID {} while adding {}, linking them together...", zoneID, name);
+		g_logger().trace("[Zone::addZone] Found with ID {} while adding {}, linking them together...", zoneID, name);
 		auto zone = zonesByID[zoneID];
 		zone->name = name;
 		zones[name] = zone;
@@ -122,6 +122,10 @@ std::vector<std::shared_ptr<Item>> Zone::getItems() {
 void Zone::removePlayers() {
 	for (const auto &player : getPlayers()) {
 		g_game().internalTeleport(player, getRemoveDestination(player));
+		// Remove icon from player (soul war quest)
+		if (player->hasIcon("goshnars-hatred-damage")) {
+			player->removeIcon("goshnars-hatred-damage");
+		}
 	}
 }
 
@@ -244,17 +248,17 @@ void Zone::refresh() {
 	for (const auto &position : getPositions()) {
 		g_game().map.refreshZones(position);
 	}
-	g_logger().debug("Refreshed zone '{}' in {} milliseconds", name, bm_refresh.duration());
+	g_logger().trace("Refreshed zone '{}' in {} milliseconds", name, bm_refresh.duration());
 }
 
 void Zone::setMonsterVariant(const std::string &variant) {
 	monsterVariant = variant;
 	g_logger().debug("Zone {} monster variant set to {}", name, variant);
-	for (auto &spawnMonster : g_game().map.spawnsMonster.getspawnMonsterList()) {
-		if (!contains(spawnMonster.getCenterPos())) {
+	for (const auto &spawnMonster : g_game().map.spawnsMonster.getspawnMonsterList()) {
+		if (!contains(spawnMonster->getCenterPos())) {
 			continue;
 		}
-		spawnMonster.setMonsterVariant(variant);
+		spawnMonster->setMonsterVariant(variant);
 	}
 
 	removeMonsters();

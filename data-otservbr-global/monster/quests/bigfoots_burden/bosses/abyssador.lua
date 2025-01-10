@@ -2,7 +2,7 @@ local mType = Game.createMonsterType("Abyssador")
 local monster = {}
 
 monster.description = "Abyssador"
-monster.experience = 50000
+monster.experience = 400000
 monster.outfit = {
 	lookType = 495,
 	lookHead = 0,
@@ -13,10 +13,13 @@ monster.outfit = {
 	lookMount = 0,
 }
 
+monster.events = {
+	"BossesWarzoneDeath",
+}
+
 monster.bosstiary = {
 	bossRaceId = 887,
 	bossRace = RARITY_ARCHFOE,
-	storageCooldown = Storage.BigfootBurden.BossWarzone3,
 }
 
 monster.health = 340000

@@ -28,6 +28,30 @@ function MsgFind(message, keyword)
 	return string.find(lowerMessage, lowerKeyword) and string.find(lowerMessage, lowerKeyword .. "(%w+)") and string.find(lowerMessage, "(%w+)" .. lowerKeyword)
 end
 
+function GetFormattedShopCategoryNames(itemsTable)
+	local formattedCategoryNames = {}
+	for categoryName, _ in pairs(itemsTable) do
+		table.insert(formattedCategoryNames, "{" .. categoryName .. "}")
+	end
+
+	if #formattedCategoryNames > 1 then
+		local lastCategory = table.remove(formattedCategoryNames)
+		return table.concat(formattedCategoryNames, ", ") .. " and " .. lastCategory
+	else
+		return formattedCategoryNames[1] or ""
+	end
+end
+
+function Npc:getRemainingShopCategories(selectedCategory, itemsTable)
+	local remainingCategories = {}
+	for categoryName, _ in pairs(itemsTable) do
+		if categoryName ~= selectedCategory then
+			table.insert(remainingCategories, "{" .. categoryName .. "}")
+		end
+	end
+	return table.concat(remainingCategories, " or ")
+end
+
 -- Npc talk
 -- npc:talk({text, text2}) or npc:talk(text)
 function Npc:talk(player, text)
@@ -54,18 +78,18 @@ end
 function SayEvent(npcId, playerId, messageDelayed, npcHandler, textType)
 	local npc = Npc(npcId)
 	if not npc then
-		return logger.error("[NpcHandler:say] - Npc parameter is missing, nil or not found")
+		return logger.error("[{} NpcHandler:say] - Npc parameter for npc '{}' is missing, nil or not found", npc:getName(), npc:getName())
 	end
 
 	local player = Player(playerId)
 	if not player then
-		return logger.error("[NpcHandler:say] - Player parameter is missing, nil or not found")
+		return logger.error("[{} NpcHandler:say] - Player parameter for npc '{}' is missing, nil or not found", npc:getName(), npc:getName())
 	end
 
 	local parseInfo = {
 		[TAG_PLAYERNAME] = player:getName(),
 		[TAG_TIME] = getFormattedWorldTime(),
-		[TAG_BLESSCOST] = Blessings.getBlessingsCost(player:getLevel(), false),
+		[TAG_BLESSCOST] = Blessings.getBlessingCost(player:getLevel(), false, (npc:getName() == "Kais" or npc:getName() == "Nomad") and true),
 		[TAG_PVPBLESSCOST] = Blessings.getPvpBlessingCost(player:getLevel(), false),
 	}
 	npc:say(npcHandler:parseMessage(messageDelayed, parseInfo), textType or TALKTYPE_PRIVATE_NP, false, player, npc:getPosition())

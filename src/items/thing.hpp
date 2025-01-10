@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -54,19 +54,22 @@ public:
 	virtual std::shared_ptr<Container> getContainer() {
 		return nullptr;
 	}
-	virtual std::shared_ptr<Container> getContainer() const {
+	virtual std::shared_ptr<const Container> getContainer() const {
 		return nullptr;
 	}
 	virtual std::shared_ptr<Item> getItem() {
 		return nullptr;
 	}
-	virtual std::shared_ptr<Item> getItem() const {
+	virtual std::shared_ptr<const Item> getItem() const {
 		return nullptr;
 	}
 	virtual std::shared_ptr<Creature> getCreature() {
 		return nullptr;
 	}
-	virtual std::shared_ptr<Creature> getCreature() const {
+	virtual std::shared_ptr<const Creature> getCreature() const {
+		return nullptr;
+	}
+	virtual std::shared_ptr<Cylinder> getCylinder() {
 		return nullptr;
 	}
 

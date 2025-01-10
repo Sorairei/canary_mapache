@@ -20,6 +20,10 @@ monster.corpse = 35846
 monster.speed = 115
 monster.manaCost = 0
 
+monster.events = {
+	"RatmiralBlackwhiskersDeath",
+}
+
 monster.changeTarget = {
 	interval = 4000,
 	chance = 10,
@@ -28,7 +32,6 @@ monster.changeTarget = {
 monster.bosstiary = {
 	bossRaceId = 2006,
 	bossRace = RARITY_ARCHFOE,
-	storageCooldown = Storage.Quest.U12_60.APiratesTail.RatmiralTimer,
 }
 
 monster.strategiesTarget = {
@@ -137,11 +140,5 @@ monster.immunities = {
 	{ type = "invisible", condition = true },
 	{ type = "bleed", condition = false },
 }
-
-mType.onAppear = function(monster, creature)
-	if monster:getType():isRewardBoss() then
-		monster:setReward(true)
-	end
-end
 
 mType:register(monster)

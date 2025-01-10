@@ -13,6 +13,10 @@ monster.outfit = {
 	lookMount = 0,
 }
 
+monster.events = {
+	"DeathPriestShargonDeath",
+}
+
 monster.bosstiary = {
 	bossRaceId = 1047,
 	bossRace = RARITY_BANE,
@@ -55,10 +59,6 @@ monster.flags = {
 	canWalkOnEnergy = true,
 	canWalkOnFire = true,
 	canWalkOnPoison = true,
-}
-
-monster.events = {
-	"ShargonKill",
 }
 
 monster.light = {

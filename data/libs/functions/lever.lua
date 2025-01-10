@@ -5,6 +5,7 @@ setmetatable(Lever, {
 		local lever_data = {
 			positions = {},
 			info_positions = nil,
+			players = {},
 			condition = function()
 				return true
 			end,
@@ -49,6 +50,19 @@ end
 ---@return nil
 function Lever.getInfoPositions(self)
 	return self.info_positions
+end
+
+---@return table
+function Lever.getPlayers(self)
+	return self.players
+end
+
+---@param player Player
+---@return nil
+function Lever.addPlayer(self, player)
+	if player and player:isPlayer() then
+		table.insert(self.players, player)
+	end
 end
 
 --[[
@@ -109,6 +123,7 @@ function Lever:checkPositions()
 		local ground = tile:getGround()
 		local actionID = ground:getActionId()
 		local uniqueID = ground:getUniqueId()
+		self:addPlayer(creature)
 		table.insert(array, {
 			tile = tile,
 			creature = creature,
@@ -140,6 +155,12 @@ function Lever.checkConditions(self) -- It will check the conditions defined in 
 	return true
 end
 
+function Lever.executeOnPlayers(self, func)
+	for _, player in pairs(self:getPlayers()) do
+		func(player)
+	end
+end
+
 ---@return nil
 function Lever.teleportPlayers(self) -- It will teleport all players to the positions defined in setPositions()
 	local info = self:getInfoPositions()
@@ -157,21 +178,10 @@ function Lever.teleportPlayers(self) -- It will teleport all players to the posi
 	end
 end
 
---[[
-    lever:setPositions(key, value)
-
-    | Method | Type | Usage   | Default |
-    |--------|------|---------|---------|
-    | key    | int  | Storage | nil     |
-    | value  | int  | Value   | nil     |
-
-    lever:setStorageAllPlayers(10000, 1)
-]]
----@generic Storage
----@param key Storage
+---@param bossName string
 ---@param value number
 ---@return nil
-function Lever.setStorageAllPlayers(self, key, value) -- Will set storage on all players
+function Lever.setCooldownAllPlayers(self, bossName, value)
 	local info = self:getInfoPositions()
 	if not info then
 		error("Necessary information from players")
@@ -182,9 +192,21 @@ function Lever.setStorageAllPlayers(self, key, value) -- Will set storage on all
 		if v.creature then
 			local player = v.creature:getPlayer()
 			if player then
-				player:setStorageValue(key, value)
-				player:sendBosstiaryCooldownTimer()
+				player:setBossCooldown(bossName, value)
 			end
 		end
 	end
+end
+
+function Lever.canUseLever(self, player, bossName, timeToFightAgain)
+	local info = self:getInfoPositions()
+	for _, v in pairs(info) do
+		local newPlayer = v.creature
+		if newPlayer and not newPlayer:canFightBoss(bossName) then
+			player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "You or a member in your team have to wait " .. timeToFightAgain .. " hours to face " .. bossName .. " again!")
+			newPlayer:getPosition():sendMagicEffect(CONST_ME_POFF)
+			return false
+		end
+	end
+	return true
 end

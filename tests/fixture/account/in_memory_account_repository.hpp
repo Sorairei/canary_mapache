@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -12,13 +12,16 @@
 #include <string>
 #include <utility>
 
-#include "account/account_definitions.hpp"
 #include "test_injection.hpp"
 #include "lib/di/container.hpp"
 
+#include "enums/account_coins.hpp"
+#include "account/account_info.hpp"
+#include "account/account_repository.hpp"
+
 namespace di = boost::di;
 
-namespace account::tests {
+namespace tests {
 	class InMemoryAccountRepository : public AccountRepository {
 	public:
 		static di::extension::injector<> &install(di::extension::injector<> &injector) {
@@ -30,10 +33,10 @@ namespace account::tests {
 			accounts[descriptor] = acc;
 		}
 
-		bool loadByID(const uint32_t &id, AccountInfo &acc) final {
+		bool loadByID(const uint32_t &id, std::unique_ptr<AccountInfo> &acc) final {
 			for (const auto &account : accounts) {
 				if (account.second.id == id) {
-					acc = account.second;
+					acc = std::make_unique<AccountInfo>(account.second);
 					return true;
 				}
 			}
@@ -41,29 +44,29 @@ namespace account::tests {
 			return false;
 		}
 
-		bool loadByEmail(const std::string &email, AccountInfo &acc) final {
+		bool loadByEmailOrName(bool oldProtocol, const std::string &email, std::unique_ptr<AccountInfo> &acc) final {
 			auto account = accounts.find(email);
 
 			if (account == accounts.end()) {
 				return false;
 			}
 
-			acc = account->second;
+			acc = std::make_unique<AccountInfo>(account->second);
 			return true;
 		}
 
-		bool loadBySession(const std::string &sessionKey, AccountInfo &acc) final {
+		bool loadBySession(const std::string &sessionKey, std::unique_ptr<AccountInfo> &acc) final {
 			auto account = accounts.find(sessionKey);
 
 			if (account == accounts.end()) {
 				return false;
 			}
 
-			acc = account->second;
+			acc = std::make_unique<AccountInfo>(account->second);
 			return true;
 		}
 
-		bool save(const AccountInfo &accInfo) final {
+		bool save(const std::unique_ptr<AccountInfo> &accInfo) final {
 			return !failSave;
 		}
 
@@ -72,7 +75,7 @@ namespace account::tests {
 			return !failGetPassword;
 		}
 
-		bool getCoins(const uint32_t &id, const CoinType &type, uint32_t &coins) final {
+		bool getCoins(const uint32_t &id, CoinType type, uint32_t &coins) final {
 			auto accountCoins = coins_.find(id);
 
 			if (accountCoins == coins_.end()) {
@@ -89,7 +92,7 @@ namespace account::tests {
 			return true;
 		}
 
-		bool setCoins(const uint32_t &id, const CoinType &type, const uint32_t &amount) final {
+		bool setCoins(const uint32_t &id, CoinType type, const uint32_t &amount) final {
 			auto accountCoins = coins_.find(id);
 
 			if (accountCoins == coins_.end()) {
@@ -104,7 +107,7 @@ namespace account::tests {
 			const uint32_t &id,
 			CoinTransactionType type,
 			uint32_t coins,
-			const CoinType &coinType,
+			CoinType coinType,
 			const std::string &description
 		) final {
 			auto accountCoins = coinsTransactions_.find(id);
@@ -115,6 +118,17 @@ namespace account::tests {
 
 			coinsTransactions_[id].emplace_back(type, coins, coinType, description);
 			return true;
+		}
+
+		bool getCharacterByAccountIdAndName(const uint32_t &id, const std::string &name) final {
+			for (auto it = accounts.begin(); it != accounts.end(); ++it) {
+				if (it->second.id == id) {
+					if (it->second.players.find(name) != it->second.players.end()) {
+						return true;
+					}
+				}
+			}
+			return false;
 		}
 
 		InMemoryAccountRepository &reset() {
@@ -142,6 +156,6 @@ namespace account::tests {
 }
 
 template <>
-struct TestInjection<account::AccountRepository> {
-	using type = account::tests::InMemoryAccountRepository;
+struct TestInjection<AccountRepository> {
+	using type = tests::InMemoryAccountRepository;
 };

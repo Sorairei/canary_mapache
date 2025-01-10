@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -26,9 +26,13 @@ class Guild;
 class Zone;
 class KV;
 
+using lua_Number = double;
+
+struct LuaVariant;
+
 #define reportErrorFunc(a) reportError(__FUNCTION__, a, true)
 
-class LuaFunctionsLoader {
+class Lua {
 public:
 	static void load(lua_State* L);
 
@@ -37,11 +41,12 @@ public:
 	static void reportError(const char* function, const std::string &error_desc, bool stack_trace = false);
 	static int luaErrorHandler(lua_State* L);
 
-	static void pushThing(lua_State* L, std::shared_ptr<Thing> thing);
+	static void pushThing(lua_State* L, const std::shared_ptr<Thing> &thing);
 	static void pushVariant(lua_State* L, const LuaVariant &var);
 	static void pushString(lua_State* L, const std::string &value);
+	static void pushNumber(lua_State* L, lua_Number value);
 	static void pushCallback(lua_State* L, int32_t callback);
-	static void pushCylinder(lua_State* L, std::shared_ptr<Cylinder> cylinder);
+	static void pushCylinder(lua_State* L, const std::shared_ptr<Cylinder> &cylinder);
 
 	static std::string popString(lua_State* L);
 	static int32_t popCallback(lua_State* L);
@@ -54,19 +59,33 @@ public:
 
 	static void setMetatable(lua_State* L, int32_t index, const std::string &name);
 	static void setWeakMetatable(lua_State* L, int32_t index, const std::string &name);
-	static void setItemMetatable(lua_State* L, int32_t index, std::shared_ptr<Item> item);
-	static void setCreatureMetatable(lua_State* L, int32_t index, std::shared_ptr<Creature> creature);
+	static void setItemMetatable(lua_State* L, int32_t index, const std::shared_ptr<Item> &item);
+	static void setCreatureMetatable(lua_State* L, int32_t index, const std::shared_ptr<Creature> &creature);
 
 	template <typename T>
-	static typename std::enable_if<std::is_enum<T>::value, T>::type
-	getNumber(lua_State* L, int32_t arg) {
-		return static_cast<T>(static_cast<int64_t>(lua_tonumber(L, arg)));
+	static T getNumber(lua_State* L, int32_t arg, std::source_location location = std::source_location::current()) {
+		auto number = lua_tonumber(L, arg);
+
+		if constexpr (std::is_enum_v<T>) {
+			return static_cast<T>(static_cast<int64_t>(number));
+		}
+
+		if constexpr (std::is_integral_v<T>) {
+			if constexpr (std::is_unsigned_v<T>) {
+				if (number < 0) {
+					g_logger().debug("[{}] overflow, setting to default unsigned value (0), called line: {}:{}, in {}", __FUNCTION__, location.line(), location.column(), location.function_name());
+					return T(0);
+				}
+			}
+			return static_cast<T>(number);
+		}
+		if constexpr (std::is_floating_point_v<T>) {
+			return static_cast<T>(number);
+		}
+
+		return T {};
 	}
-	template <typename T>
-	static typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, T>::type
-	getNumber(lua_State* L, int32_t arg) {
-		return static_cast<T>(lua_tonumber(L, arg));
-	}
+
 	template <typename T>
 	static T getNumber(lua_State* L, int32_t arg, T defaultValue) {
 		const auto parameters = lua_gettop(L);
@@ -173,6 +192,11 @@ public:
 	static int protectedCall(lua_State* L, int nargs, int nresults);
 
 	static ScriptEnvironment* getScriptEnv() {
+		if (scriptEnvIndex < 0 || scriptEnvIndex >= 16) {
+			g_logger().error("[{}]: scriptEnvIndex out of bounds!", __FUNCTION__);
+			return nullptr;
+		}
+
 		assert(scriptEnvIndex >= 0 && scriptEnvIndex < 16);
 		return scriptEnv + scriptEnvIndex;
 	}
@@ -182,6 +206,11 @@ public:
 	}
 
 	static void resetScriptEnv() {
+		if (scriptEnvIndex < 0) {
+			g_logger().error("[{}]: scriptEnvIndex out of bounds!", __FUNCTION__);
+			return;
+		}
+
 		assert(scriptEnvIndex >= 0);
 		scriptEnv[scriptEnvIndex--].resetEnv();
 	}
@@ -208,7 +237,6 @@ public:
 		new (userData) std::shared_ptr<T>(value);
 	}
 
-protected:
 	static void registerClass(lua_State* L, const std::string &className, const std::string &baseClass, lua_CFunction newFunction = nullptr);
 	static void registerSharedClass(lua_State* L, const std::string &className, const std::string &baseClass, lua_CFunction newFunction = nullptr);
 	static void registerMethod(lua_State* L, const std::string &globalName, const std::string &methodName, lua_CFunction func);

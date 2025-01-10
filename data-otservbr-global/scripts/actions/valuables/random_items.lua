@@ -76,6 +76,51 @@ local config = {
 		},
 		effect = CONST_ME_CRAPS,
 	},
+	[20264] = { -- unrealized dream
+		chances = {
+			{ from = 1, to = 1081, itemId = 3108 }, -- Rubbish (10.81%)
+			{ from = 1082, to = 2125, itemId = 2992 }, -- Snowball (10.44%)
+			{ from = 2126, to = 3109, itemId = 5792 }, -- Die (9.83%)
+			{ from = 3110, to = 4074, itemId = 2856 }, -- Present (9.64%)
+			{ from = 4075, to = 5039, itemId = 3659 }, -- Blue Rose (9.64%)
+			{ from = 5040, to = 6007, itemId = 3568 }, -- Simple Dress (9.67%)
+			{ from = 6008, to = 6969, itemId = 3463 }, -- Mirror (9.61%)
+			{ from = 6970, to = 7457, itemId = 2995 }, -- Piggy Bank (4.87%)
+			{ from = 7458, to = 7945, itemId = 2950 }, -- Lute (4.87%)
+			{ from = 7946, to = 8268, itemId = 651 }, -- Spellwand (4.22%)
+			{ from = 8269, to = 8659, itemId = 5929 }, -- Goldfish Bowl (3.90%)
+			{ from = 8660, to = 8984, itemId = 3577 }, -- Meat (3.24%)
+			{ from = 8985, to = 9192, itemId = 20271 }, -- Copper Prision Key (2.07%)
+			{ from = 9193, to = 9396, itemId = 20272 }, -- Bronze Prison Key (2.03%)
+			{ from = 9397, to = 9588, itemId = 20270 }, -- Silver Prison Key (1.91%)
+			{ from = 9589, to = 9719, itemId = 20062 }, -- Cluster of Solace (1.30%)
+			{ from = 9720, to = 9780, itemId = 3004 }, -- Wedding Ring (0.60%)
+			{ from = 9781, to = 9842, itemId = 7459 }, -- Pair of Earmuffs (0.61%)
+			{ from = 9843, to = 9894, itemId = 20275 }, -- Dream Warden Claw (0.51%)
+			{ from = 9895, to = 9946, itemId = 20273 }, -- Golden Prison Key (0.51%)
+			{ from = 9947, to = 9987, itemId = 3242 }, -- Stuffed Bunny (0.40%)
+			{ from = 9988, to = 10001, itemId = 12548 }, -- Bag of Apple Slices (0.13%)
+		},
+		effect = CONST_ME_BUBBLES,
+	},
+	[21333] = { -- Belongings of a Deceased (The Ravager) - Dark Trails Quest
+		chances = {
+			{ from = 1, to = 2500, itemId = 3043 }, -- crystal coins
+			{ from = 2501, to = 5000, itemId = 3041 }, -- blue gem
+			{ from = 5001, to = 7500, itemId = 3038 }, -- green gem
+			{ from = 7501, to = 10001, itemId = 3331 }, -- ravager's axe
+		},
+		effect = CONST_ME_MAGIC_GREEN,
+	},
+	[21334] = { -- Belongings of a Deceased (Death Priest Shargon) - Dark Trails Quest
+		chances = {
+			{ from = 1, to = 2500, itemId = 3043 }, -- crystal coins
+			{ from = 2501, to = 5000, itemId = 5741 }, -- skull helmet
+			{ from = 5001, to = 7500, itemId = 3324 }, -- skull staff
+			{ from = 7501, to = 10001, itemId = 9056 }, -- black skull
+		},
+		effect = CONST_ME_MAGIC_GREEN,
+	},
 	[22763] = { -- shaggy ogre bag
 		chances = {
 			{ from = 1, to = 1440, itemId = 22187, count = 5 },
@@ -124,6 +169,13 @@ local config = {
 			{ from = 9894, to = 9929, itemId = 22737 },
 			{ from = 9930, to = 9958, itemId = 23536 },
 			{ from = 9959, to = 10001, itemId = 22731 },
+		},
+		effect = CONST_ME_CRAPS,
+	},
+	[26186] = { -- mystery box
+		chances = {
+			{ from = 0, to = 5001, itemId = 25361 }, -- blood of the mountain
+			{ from = 5002, to = 10001, itemId = 25360 }, -- heart of the mountain
 		},
 		effect = CONST_ME_CRAPS,
 	},

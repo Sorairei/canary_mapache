@@ -221,7 +221,7 @@ if NpcHandler == nil then
 	function NpcHandler:removeInteraction(npc, player)
 		local playerId = player:getId()
 		if Player(player) == nil then
-			return logger.error("[NpcHandler:removeInteraction] - Player is missing or nil")
+			return logger.error("[{} NpcHandler:removeInteraction] - Player parameter for npc '{}' is missing or nil", npc:getName(), npc:getName())
 		end
 
 		if self:getEventDelayedSay(playerId) then
@@ -345,16 +345,29 @@ if NpcHandler == nil then
 	end
 
 	-- Translates all message tags found in msg using parseInfo
-	function NpcHandler:parseMessage(msg, parseInfo)
+	function NpcHandler:parseMessage(msg, parseInfo, player, message)
 		local ret = msg
 		if type(ret) == "string" then
 			for search, replace in pairs(parseInfo) do
-				ret = string.gsub(ret, search, replace)
+				if type(replace) == "string" then
+					ret = string.gsub(ret, search, replace)
+				elseif type(replace) == "function" then
+					ret = string.gsub(ret, search, replace(player, message))
+				else
+					ret = string.gsub(ret, search, replace)
+				end
 			end
 		else
 			for i = 1, #ret do
 				for search, replace in pairs(parseInfo) do
 					ret[i] = string.gsub(ret[i], search, replace)
+					if type(replace) == "string" then
+						ret[i] = string.gsub(ret[i], search, replace)
+					elseif type(replace) == "function" then
+						ret = string.gsub(ret, search, replace(player, message))
+					else
+						ret[i] = string.gsub(ret[i], search, replace)
+					end
 				end
 			end
 		end
@@ -498,13 +511,7 @@ if NpcHandler == nil then
 		local callback = self:getCallback(CALLBACK_ON_MOVE)
 		if callback == nil or callback(npc, player, fromPosition, toPosition) then
 			if self:processModuleCallback(CALLBACK_ON_MOVE, npc, player, fromPosition, toPosition) then
-				if self:checkInteraction(npc, player) then
-					if not self:isInRange(npc, player) then
-						self:onWalkAway(npc, player)
-					else
-						self:updateInteraction(npc, player)
-					end
-				end
+				return true
 			end
 		end
 	end
@@ -582,6 +589,7 @@ if NpcHandler == nil then
 		events = nil
 	end
 
+	-- From now on, when you have several messages and inside brackets, use the tag |PLAYERNAME| recognition will be possible.
 	function NpcHandler:doNPCTalkALot(msgs, delay, npc, player)
 		local playerId = player:getId()
 		if self:getEventDelayedSay(playerId) then
@@ -600,13 +608,18 @@ if NpcHandler == nil then
 
 		self.eventDelayedSay[playerId] = {}
 		local ret = {}
+		local parseInfo = {
+			[TAG_PLAYERNAME] = player:getName(),
+		}
+
 		for messagesTable, messageString in pairs(msgs) do
 			self.eventDelayedSay[playerId][messagesTable] = {}
 			if delay ~= nil and delay > 1 then
 				self.talkDelay = delay
 			end
 			-- The "self.talkDelayTimeForOutgoingMessages * 1000" = Interval for sending subsequent messages from the first
-			npc:sayWithDelay(npcUniqueId, msgs[messagesTable], TALKTYPE_PRIVATE_NP, ((messagesTable - 1) * self.talkDelay + self.talkDelayTimeForOutgoingMessages * 1000), self.eventDelayedSay[playerId][messagesTable], playerUniqueId)
+			local parsedMessage = self:parseMessage(msgs[messagesTable], parseInfo, player, messageString)
+			npc:sayWithDelay(npcUniqueId, parsedMessage, TALKTYPE_PRIVATE_NP, ((messagesTable - 1) * self.talkDelay + self.talkDelayTimeForOutgoingMessages * 1000), self.eventDelayedSay[playerId][messagesTable], playerUniqueId)
 			ret[#ret + 1] = self.eventDelayedSay[playerId][messagesTable]
 		end
 		return ret

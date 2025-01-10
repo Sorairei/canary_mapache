@@ -19,7 +19,7 @@ function leaveHouse.onSay(player, words, param)
 	if house:hasNewOwnership() then
 		player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "You cannot leave this house. Ownership is already scheduled to be transferred upon the next server restart.")
 		playerPosition:sendMagicEffect(CONST_ME_POFF)
-		return false
+		return true
 	end
 
 	-- Move hireling back to lamp
@@ -42,6 +42,8 @@ function leaveHouse.onSay(player, words, param)
 	return true
 end
 
-leaveHouse:separator(" ")
-leaveHouse:groupType("normal")
-leaveHouse:register()
+if not configManager.getBoolean(configKeys.CYCLOPEDIA_HOUSE_AUCTION) then
+	leaveHouse:separator(" ")
+	leaveHouse:groupType("normal")
+	leaveHouse:register()
+end

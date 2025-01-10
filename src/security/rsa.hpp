@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -13,7 +13,7 @@ class Logger;
 
 class RSA {
 public:
-	RSA(Logger &logger);
+	explicit RSA(Logger &logger);
 	~RSA();
 
 	// Singleton - ensures we don't accidentally copy it
@@ -34,8 +34,8 @@ public:
 
 private:
 	Logger &logger;
-	mpz_t n;
-	mpz_t d;
+	mpz_t n {};
+	mpz_t d {};
 };
 
 constexpr auto g_RSA = RSA::getInstance;

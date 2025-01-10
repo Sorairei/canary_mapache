@@ -10,7 +10,6 @@ monster.outfit = {
 monster.bosstiary = {
 	bossRaceId = 2114,
 	bossRace = RARITY_ARCHFOE,
-	storageCooldown = Storage.Quest.U12_70.AdventuresOfGalthen.MegasylvanYseldaTimer,
 }
 
 monster.health = 32000
@@ -128,11 +127,5 @@ monster.immunities = {
 	{ type = "invisible", condition = true },
 	{ type = "bleed", condition = false },
 }
-
-mType.onAppear = function(monster, creature)
-	if monster:getType():isRewardBoss() then
-		monster:setReward(true)
-	end
-end
 
 mType:register(monster)

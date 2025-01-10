@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -10,45 +10,37 @@
 #pragma once
 
 #include "account/account_repository.hpp"
-#include "database/database.hpp"
-#include "lib/logging/logger.hpp"
-#include "utils/definitions.hpp"
 
-namespace account {
-	class AccountRepositoryDB final : public AccountRepository {
-	public:
-		AccountRepositoryDB(Database &db, Logger &logger) :
-			db(db), logger(logger) { }
+enum class CoinType : uint8_t;
+enum class CoinTransactionType : uint8_t;
 
-		bool loadByID(const uint32_t &id, AccountInfo &acc) override;
-		bool loadByEmail(const std::string &email, AccountInfo &acc) override;
-		bool loadBySession(const std::string &esseionKey, AccountInfo &acc) override;
-		bool save(const AccountInfo &accInfo) override;
+class AccountRepositoryDB final : public AccountRepository {
+public:
+	AccountRepositoryDB();
 
-		bool getPassword(const uint32_t &id, std::string &password) override;
+	bool loadByID(const uint32_t &id, std::unique_ptr<AccountInfo> &acc) override;
+	bool loadByEmailOrName(bool oldProtocol, const std::string &emailOrName, std::unique_ptr<AccountInfo> &acc) override;
+	bool loadBySession(const std::string &esseionKey, std::unique_ptr<AccountInfo> &acc) override;
+	bool save(const std::unique_ptr<AccountInfo> &accInfo) override;
 
-		bool getCoins(const uint32_t &id, const CoinType &type, uint32_t &coins) override;
-		bool setCoins(const uint32_t &id, const CoinType &type, const uint32_t &amount) override;
-		bool registerCoinsTransaction(
-			const uint32_t &id,
-			CoinTransactionType type,
-			uint32_t coins,
-			const CoinType &coinType,
-			const std::string &description
-		) override;
+	bool getCharacterByAccountIdAndName(const uint32_t &id, const std::string &name) override;
 
-	private:
-		const std::map<CoinType, std::string> coinTypeToColumn = {
-			{ CoinType::COIN, "coins" },
-			{ CoinType::TOURNAMENT, "tournament_coins" },
-			{ CoinType::TRANSFERABLE, "coins_transferable" }
-		};
-		Database &db;
-		Logger &logger;
+	bool getPassword(const uint32_t &id, std::string &password) override;
 
-		bool load(const std::string &query, AccountInfo &acc);
-		bool loadAccountPlayers(AccountInfo &acc);
-		void setupLoyaltyInfo(AccountInfo &acc);
-	};
+	bool getCoins(const uint32_t &id, CoinType coinType, uint32_t &coins) override;
+	bool setCoins(const uint32_t &id, CoinType coinType, const uint32_t &amount) override;
+	bool registerCoinsTransaction(
+		const uint32_t &id,
+		CoinTransactionType type,
+		uint32_t coins,
+		CoinType coinType,
+		const std::string &description
+	) override;
 
-} // namespace account
+private:
+	std::unordered_map<CoinType, std::string> coinTypeToColumn {};
+
+	bool load(const std::string &query, std::unique_ptr<AccountInfo> &acc);
+	bool loadAccountPlayers(std::unique_ptr<AccountInfo> &acc) const;
+	void setupLoyaltyInfo(std::unique_ptr<AccountInfo> &acc);
+};

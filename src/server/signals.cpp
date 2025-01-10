@@ -1,21 +1,25 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
  * Website: https://docs.opentibiabr.com/
  */
 
-#include "pch.hpp"
+#include "server/signals.hpp"
 
+#include "config/configmanager.hpp"
+#include "creatures/appearance/mounts/mounts.hpp"
+#include "creatures/interactions/chat.hpp"
 #include "game/game.hpp"
 #include "game/scheduling/dispatcher.hpp"
 #include "game/scheduling/save_manager.hpp"
 #include "lib/thread/thread_pool.hpp"
 #include "lua/creature/events.hpp"
+#include "lua/global/globalevent.hpp"
 #include "lua/scripts/lua_environment.hpp"
-#include "server/signals.hpp"
+#include "lib/di/container.hpp"
 
 Signals::Signals(asio::io_service &service) :
 	set(service) {
@@ -38,8 +42,8 @@ void Signals::asyncWait() {
 	set.async_wait([this](std::error_code err, int signal) {
 		if (err) {
 			g_logger().error("[Signals::asyncWait] - "
-							 "Signal handling error: {}",
-							 err.message());
+			                 "Signal handling error: {}",
+			                 err.message());
 			return;
 		}
 		dispatchSignalHandler(signal);
@@ -53,21 +57,21 @@ void Signals::asyncWait() {
 void Signals::dispatchSignalHandler(int signal) {
 	switch (signal) {
 		case SIGINT: // Shuts the server down
-			g_dispatcher().addEvent(sigintHandler, "sigintHandler");
+			g_dispatcher().addEvent(sigintHandler, __FUNCTION__);
 			break;
 		case SIGTERM: // Shuts the server down
-			g_dispatcher().addEvent(sigtermHandler, "sigtermHandler");
+			g_dispatcher().addEvent(sigtermHandler, __FUNCTION__);
 			break;
 #ifndef _WIN32
 		case SIGHUP: // Reload config/data
-			g_dispatcher().addEvent(sighupHandler, "sighupHandler");
+			g_dispatcher().addEvent(sighupHandler, __FUNCTION__);
 			break;
 		case SIGUSR1: // Saves game state
-			g_dispatcher().addEvent(sigusr1Handler, "sigusr1Handler");
+			g_dispatcher().addEvent(sigusr1Handler, __FUNCTION__);
 			break;
 #else
 		case SIGBREAK: // Shuts the server down
-			g_dispatcher().addEvent(sigbreakHandler, "sigbreakHandler");
+			g_dispatcher().addEvent(sigbreakHandler, __FUNCTION__);
 			// hold the thread until other threads end
 			inject<ThreadPool>().shutdown();
 			break;
@@ -92,6 +96,7 @@ void Signals::sigtermHandler() {
 void Signals::sigusr1Handler() {
 	// Dispatcher thread
 	g_logger().info("SIGUSR1 received, saving the game state...");
+	g_globalEvents().save();
 	g_saveManager().scheduleAll();
 }
 
@@ -109,7 +114,7 @@ void Signals::sighupHandler() {
 	Item::items.reload();
 	g_logger().info("Reloaded items");
 
-	g_game().mounts.reload();
+	g_game().mounts->reload();
 	g_logger().info("Reloaded mounts");
 
 	g_events().loadFromXml();

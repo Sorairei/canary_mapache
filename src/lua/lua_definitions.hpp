@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -57,7 +57,7 @@ enum class LuaData_t : uint8_t {
 	ItemClassification,
 };
 
-enum CreatureEventType_t {
+enum CreatureEventType_t : uint8_t {
 	CREATURE_EVENT_NONE,
 	CREATURE_EVENT_LOGIN,
 	CREATURE_EVENT_LOGOUT,
@@ -74,7 +74,7 @@ enum CreatureEventType_t {
 	CREATURE_EVENT_EXTENDED_OPCODE,
 };
 
-enum MoveEvent_t {
+enum MoveEvent_t : uint8_t {
 	MOVE_EVENT_STEP_IN,
 	MOVE_EVENT_STEP_OUT,
 	MOVE_EVENT_EQUIP,
@@ -99,7 +99,7 @@ enum TalkActionResult_t {
 	TALKACTION_FAILED,
 };
 
-enum GlobalEvent_t {
+enum GlobalEvent_t : uint8_t {
 	GLOBALEVENT_NONE,
 	GLOBALEVENT_TIMER,
 
@@ -108,20 +108,12 @@ enum GlobalEvent_t {
 	GLOBALEVENT_RECORD,
 	GLOBALEVENT_PERIODCHANGE,
 	GLOBALEVENT_ON_THINK,
+	GLOBALEVENT_SAVE,
 };
 
 enum ModuleType_t {
 	MODULE_TYPE_RECVBYTE,
 	MODULE_TYPE_NONE,
-};
-
-enum LuaVariantType_t {
-	VARIANT_NONE,
-
-	VARIANT_NUMBER,
-	VARIANT_POSITION,
-	VARIANT_TARGETPOSITION,
-	VARIANT_STRING,
 };
 
 enum ErrorCode_t {
@@ -213,25 +205,4 @@ enum BugReportType_t : uint8_t {
 	BUG_CATEGORY_TYPO = 1,
 	BUG_CATEGORY_TECHNICAL = 2,
 	BUG_CATEGORY_OTHER = 3
-};
-
-// Struct
-struct LuaVariant {
-	LuaVariantType_t type = VARIANT_NONE;
-	std::string text;
-	std::string instantName;
-	std::string runeName;
-	Position pos;
-	uint32_t number = 0;
-};
-
-struct LuaTimerEventDesc {
-	int32_t scriptId = -1;
-	std::string scriptName;
-	int32_t function = -1;
-	std::list<int32_t> parameters;
-	uint32_t eventId = 0;
-
-	LuaTimerEventDesc() = default;
-	LuaTimerEventDesc(LuaTimerEventDesc &&other) = default;
 };

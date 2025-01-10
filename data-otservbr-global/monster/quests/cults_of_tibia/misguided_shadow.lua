@@ -32,6 +32,10 @@ monster.strategiesTarget = {
 	random = 10,
 }
 
+monster.events = {
+	"GlowingRubbishAmuletDeath",
+}
+
 monster.flags = {
 	summonable = false,
 	attackable = true,

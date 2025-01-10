@@ -1,15 +1,15 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
  * Website: https://docs.opentibiabr.com/
  */
 
-#include "pch.hpp"
-
 #include "server/network/protocol/protocollogin.hpp"
+
+#include "config/configmanager.hpp"
 #include "server/network/message/outputmessage.hpp"
 #include "game/scheduling/dispatcher.hpp"
 #include "account/account.hpp"
@@ -17,9 +17,10 @@
 #include "creatures/players/management/ban.hpp"
 #include "game/game.hpp"
 #include "core.hpp"
+#include "enums/account_errors.hpp"
 
-void ProtocolLogin::disconnectClient(const std::string &message) {
-	auto output = OutputMessagePool::getOutputMessage();
+void ProtocolLogin::disconnectClient(const std::string &message) const {
+	const auto output = OutputMessagePool::getOutputMessage();
 
 	output->addByte(0x0B);
 	output->addString(message);
@@ -28,8 +29,8 @@ void ProtocolLogin::disconnectClient(const std::string &message) {
 	disconnect();
 }
 
-void ProtocolLogin::getCharacterList(const std::string &accountDescriptor, const std::string &password) {
-	account::Account account(accountDescriptor);
+void ProtocolLogin::getCharacterList(const std::string &accountDescriptor, const std::string &password) const {
+	Account account(accountDescriptor);
 	account.setProtocolCompat(oldProtocol);
 
 	if (oldProtocol && !g_configManager().getBoolean(OLD_PROTOCOL)) {
@@ -40,7 +41,7 @@ void ProtocolLogin::getCharacterList(const std::string &accountDescriptor, const
 		return;
 	}
 
-	if (account.load() != account::ERROR_NO || !account.authenticate(password)) {
+	if (account.load() != AccountErrors_t::Ok || !account.authenticate(password)) {
 		std::ostringstream ss;
 		ss << (oldProtocol ? "Username" : "Email") << " or password is not correct.";
 		disconnectClient(ss.str());
@@ -65,7 +66,7 @@ void ProtocolLogin::getCharacterList(const std::string &accountDescriptor, const
 
 	// Add char list
 	auto [players, result] = account.getAccountPlayers();
-	if (account::ERROR_NO != result) {
+	if (AccountErrors_t::Ok != result) {
 		g_logger().warn("Account[{}] failed to load players!", account.getID());
 	}
 
@@ -77,7 +78,7 @@ void ProtocolLogin::getCharacterList(const std::string &accountDescriptor, const
 	output->addString(g_configManager().getString(SERVER_NAME));
 	output->addString(g_configManager().getString(IP));
 
-	output->add<uint16_t>(g_configManager().getShortNumber(GAME_PORT));
+	output->add<uint16_t>(g_configManager().getNumber(GAME_PORT));
 
 	output->addByte(0);
 
@@ -88,10 +89,9 @@ void ProtocolLogin::getCharacterList(const std::string &accountDescriptor, const
 		output->addString(name);
 	}
 
-	// Add premium days
-	output->addByte(0);
-
-	output->addByte(account.getPremiumRemainingDays() > 0);
+	// Get premium days, check is premium and get lastday
+	output->addByte(account.getPremiumRemainingDays());
+	output->addByte(account.getPremiumLastDay() > getTimeNow());
 	output->add<uint32_t>(account.getPremiumLastDay());
 
 	send(output);
@@ -107,7 +107,7 @@ void ProtocolLogin::onRecvFirstMessage(NetworkMessage &msg) {
 
 	msg.skipBytes(2); // client OS
 
-	uint16_t version = msg.get<uint16_t>();
+	auto version = msg.get<uint16_t>();
 
 	// Old protocol support
 	oldProtocol = version == 1100;
@@ -174,6 +174,10 @@ void ProtocolLogin::onRecvFirstMessage(NetworkMessage &msg) {
 		return;
 	}
 
-	auto thisPtr = std::static_pointer_cast<ProtocolLogin>(shared_from_this());
-	g_dispatcher().addEvent(std::bind(&ProtocolLogin::getCharacterList, thisPtr, accountDescriptor, password), "ProtocolLogin::getCharacterList");
+	g_dispatcher().addEvent(
+		[self = std::static_pointer_cast<ProtocolLogin>(shared_from_this()), accountDescriptor, password] {
+			self->getCharacterList(accountDescriptor, password);
+		},
+		__FUNCTION__
+	);
 }

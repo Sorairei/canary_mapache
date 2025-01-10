@@ -2,7 +2,7 @@ local mType = Game.createMonsterType("Gnomevil")
 local monster = {}
 
 monster.description = "Gnomevil"
-monster.experience = 45000
+monster.experience = 400000
 monster.outfit = {
 	lookType = 504,
 	lookHead = 0,
@@ -13,10 +13,13 @@ monster.outfit = {
 	lookMount = 0,
 }
 
+monster.events = {
+	"BossesWarzoneDeath",
+}
+
 monster.bosstiary = {
 	bossRaceId = 893,
 	bossRace = RARITY_ARCHFOE,
-	storageCooldown = Storage.BigfootBurden.BossWarzone2,
 }
 
 monster.health = 250000

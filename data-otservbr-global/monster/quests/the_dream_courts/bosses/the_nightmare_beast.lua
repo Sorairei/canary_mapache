@@ -20,6 +20,10 @@ monster.corpse = 30159
 monster.speed = 125
 monster.manaCost = 0
 
+monster.events = {
+	"dreamCourtsDeath",
+}
+
 monster.changeTarget = {
 	interval = 4000,
 	chance = 10,
@@ -28,7 +32,6 @@ monster.changeTarget = {
 monster.bosstiary = {
 	bossRaceId = 1718,
 	bossRace = RARITY_ARCHFOE,
-	storage = Storage.Quest.U12_00.TheDreamCourts.NightmareBeastTimer,
 }
 
 monster.strategiesTarget = {
@@ -149,19 +152,5 @@ monster.immunities = {
 	{ type = "invisible", condition = true },
 	{ type = "bleed", condition = false },
 }
-
-mType.onThink = function(monster, interval) end
-
-mType.onAppear = function(monster, creature)
-	if monster:getType():isRewardBoss() then
-		monster:setReward(true)
-	end
-end
-
-mType.onDisappear = function(monster, creature) end
-
-mType.onMove = function(monster, creature, fromPosition, toPosition) end
-
-mType.onSay = function(monster, creature, type, message) end
 
 mType:register(monster)

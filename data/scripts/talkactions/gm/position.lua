@@ -4,19 +4,28 @@ function position.onSay(player, words, param)
 	-- create log
 	logCommand(player, words, param)
 
-	local param = string.gsub(param, "%s+", "")
-	local tile = load("return " .. param)()
-	local split = param:split(",")
-	if type(tile) == "table" and tile.x and tile.y and tile.z then
-		player:teleportTo(Position(tile.x, tile.y, tile.z))
-	elseif split and param ~= "" then
-		player:teleportTo(Position(split[1], split[2], split[3]))
-	elseif param == "" then
-		local playerPosition = player:getPosition()
-		player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Your current position is: \z
-		" .. playerPosition.x .. ", " .. playerPosition.y .. ", " .. playerPosition.z .. ".")
+	if param == "" then
+		local pos = player:getPosition()
+		player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Your current position is: " .. pos.x .. ", " .. pos.y .. ", " .. pos.z .. ".")
+		return
 	end
-	return true
+
+	local teleportPosition = param:toPosition()
+	if not teleportPosition then
+		player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Invalid position format. Use one of the following formats: \n/pos {x = ..., y = ..., z = ...}\n/pos Position(..., ..., ...)\n/pos x, y, z.")
+		return
+	end
+
+	local tile = Tile(teleportPosition)
+	if not tile then
+		player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Invalid tile or position. Send a valid position.")
+		return
+	end
+
+	player:teleportTo(teleportPosition)
+	if not player:isInGhostMode() then
+		teleportPosition:sendMagicEffect(CONST_ME_TELEPORT)
+	end
 end
 
 position:separator(" ")

@@ -20,6 +20,12 @@ monster.corpse = 31599
 monster.speed = 125
 monster.manaCost = 0
 
+monster.events = {
+	"sir_baeloc_health",
+	"brothers_summon",
+	"grave_danger_death",
+}
+
 monster.changeTarget = {
 	interval = 4000,
 	chance = 10,
@@ -28,7 +34,6 @@ monster.changeTarget = {
 monster.bosstiary = {
 	bossRaceId = 1755,
 	bossRace = RARITY_ARCHFOE,
-	storageCooldown = Storage.Quest.U12_20.GraveDanger.Bosses.BaelocNictrosTimer,
 }
 
 monster.strategiesTarget = {
@@ -132,19 +137,5 @@ monster.immunities = {
 	{ type = "invisible", condition = true },
 	{ type = "bleed", condition = false },
 }
-
-mType.onThink = function(monster, interval) end
-
-mType.onAppear = function(monster, creature)
-	if monster:getType():isRewardBoss() then
-		monster:setReward(true)
-	end
-end
-
-mType.onDisappear = function(monster, creature) end
-
-mType.onMove = function(monster, creature, fromPosition, toPosition) end
-
-mType.onSay = function(monster, creature, type, message) end
 
 mType:register(monster)

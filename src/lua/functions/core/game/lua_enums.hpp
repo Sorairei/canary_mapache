@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -9,13 +9,7 @@
 
 #pragma once
 
-#include "pch.hpp"
-
-#include "account/account.hpp"
-#include "declarations.hpp"
-#include "lua/scripts/luascript.hpp"
-
-class LuaEnums final : LuaScriptInterface {
+class LuaEnums {
 public:
 	static void init(lua_State* L);
 
@@ -35,6 +29,7 @@ private:
 	static void initConditionIdEnums(lua_State* L);
 	static void initConditionParamEnums(lua_State* L);
 	static void initAttributeConditionSubIdEnums(lua_State* L);
+	static void initConcoctionsEnum(lua_State* L);
 	static void initConstMeEnums(lua_State* L);
 	static void initConstAniEnums(lua_State* L);
 	static void initConstPropEnums(lua_State* L);
@@ -67,5 +62,8 @@ private:
 	static void initWebhookEnums(lua_State* L);
 	static void initBosstiaryEnums(lua_State* L);
 	static void initSoundEnums(lua_State* L);
+	static void spelltSoundEnums(lua_State* L);
+	static void monsterSoundEnums(lua_State* L);
+	static void effectsSoundEnums(lua_State* L);
 	static void initWheelEnums(lua_State* L);
 };

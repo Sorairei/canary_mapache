@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -9,8 +9,10 @@
 
 #pragma once
 
-#include "creatures/creature.hpp"
-#include "lib/di/container.hpp"
+#include "creatures/creatures_definitions.hpp"
+#include "utils/utils_definitions.hpp"
+
+class LuaScriptInterface;
 
 class Shop {
 public:
@@ -23,9 +25,9 @@ public:
 	ShopBlock shopBlock;
 };
 
-class NpcType : public SharedObject {
+class NpcType final : public SharedObject {
 	struct NpcInfo {
-		LuaScriptInterface* scriptInterface;
+		LuaScriptInterface* scriptInterface {};
 
 		Outfit_t outfit = {};
 		RespawnType respawnType = {};
@@ -66,7 +68,8 @@ class NpcType : public SharedObject {
 		std::vector<SoundEffect_t> soundVector;
 
 		std::vector<voiceBlock_t> voiceVector;
-		std::vector<std::string> scripts;
+		// We need to keep the order of scripts, so we use a set isntead of an unordered_set
+		std::set<std::string> scripts;
 		std::vector<ShopBlock> shopItemVector;
 
 		NpcsEvent_t eventType = NPCS_EVENT_NONE;
@@ -74,14 +77,14 @@ class NpcType : public SharedObject {
 
 public:
 	NpcType() = default;
-	explicit NpcType(const std::string &initName) :
-		name(initName), typeName(initName), nameDescription(initName) {};
+	explicit NpcType(const std::string &initName);
 
 	// non-copyable
 	NpcType(const NpcType &) = delete;
 	NpcType &operator=(const NpcType &) = delete;
 
 	std::string name;
+	std::string m_lowerName;
 	std::string typeName;
 	std::string nameDescription;
 	NpcInfo info;
@@ -89,7 +92,7 @@ public:
 	void loadShop(const std::shared_ptr<NpcType> &npcType, ShopBlock shopBlock);
 
 	bool loadCallback(LuaScriptInterface* scriptInterface);
-	bool canSpawn(const Position &pos);
+	bool canSpawn(const Position &pos) const;
 };
 
 class Npcs {
@@ -99,9 +102,7 @@ public:
 	Npcs(const Npcs &) = delete;
 	Npcs &operator=(const Npcs &) = delete;
 
-	static Npcs &getInstance() {
-		return inject<Npcs>();
-	}
+	static Npcs &getInstance();
 
 	std::shared_ptr<NpcType> getNpcType(const std::string &name, bool create = false);
 

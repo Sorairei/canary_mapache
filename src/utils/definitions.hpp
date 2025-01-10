@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -12,6 +12,8 @@
 #ifndef __FUNCTION__
 	#define __FUNCTION__ __func__
 #endif
+
+#define __METRICS_METHOD_NAME__ std::source_location::current().function_name()
 
 #ifndef _CRT_SECURE_NO_WARNINGS
 	#define _CRT_SECURE_NO_WARNINGS
@@ -29,8 +31,6 @@
 	#if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__)
 		#define OS_WINDOWS
 	#endif
-
-	#define WIN32_LEAN_AND_MEAN
 
 	#ifdef _MSC_VER
 		#ifdef NDEBUG
@@ -60,5 +60,3 @@
 #ifndef M_PI
 	#define M_PI 3.14159265358979323846
 #endif
-
-typedef int error_t;

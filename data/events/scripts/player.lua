@@ -1,6 +1,6 @@
 local storeItemID = {
 	-- registered item ids here are not tradable with players
-	-- these items can be set to moveable at items.xml
+	-- these items can be set to movable at items.xml
 	-- 500 charges exercise weapons
 	28552, -- exercise sword
 	28553, -- exercise axe
@@ -40,7 +40,7 @@ local storeItemID = {
 -- Players cannot throw items on teleports if set to true
 local blockTeleportTrashing = true
 
-local config = {
+local configPush = {
 	maxItemsPerSeconds = 1,
 	exhaustTime = 2000,
 }
@@ -80,8 +80,8 @@ local function antiPush(player, item, count, fromPosition, toPosition, fromCylin
 		pushDelay[playerId].items = 0
 	end
 
-	if pushDelay[playerId].items > config.maxItemsPerSeconds then
-		pushDelay[playerId].time = currentTime + config.exhaustTime
+	if pushDelay[playerId].items > configPush.maxItemsPerSeconds then
+		pushDelay[playerId].time = currentTime + configPush.exhaustTime
 	end
 
 	if pushDelay[playerId].time > currentTime then
@@ -96,7 +96,7 @@ local soulCondition = Condition(CONDITION_SOUL, CONDITIONID_DEFAULT)
 soulCondition:setTicks(4 * 60 * 1000)
 soulCondition:setParameter(CONDITION_PARAM_SOULGAIN, 1)
 
-local function useStamina(player)
+local function useStamina(player, isStaminaEnabled)
 	if not player then
 		return false
 	end
@@ -107,12 +107,12 @@ local function useStamina(player)
 	end
 
 	local playerId = player:getId()
-	if not playerId or not nextUseStaminaTime[playerId] then
+	if not playerId or not _G.NextUseStaminaTime[playerId] then
 		return false
 	end
 
 	local currentTime = os.time()
-	local timePassed = currentTime - nextUseStaminaTime[playerId]
+	local timePassed = currentTime - _G.NextUseStaminaTime[playerId]
 	if timePassed <= 0 then
 		return
 	end
@@ -123,14 +123,16 @@ local function useStamina(player)
 		else
 			staminaMinutes = 0
 		end
-		nextUseStaminaTime[playerId] = currentTime + 120
+		_G.NextUseStaminaTime[playerId] = currentTime + 120
 		player:removePreyStamina(120)
 	else
 		staminaMinutes = staminaMinutes - 1
-		nextUseStaminaTime[playerId] = currentTime + 60
+		_G.NextUseStaminaTime[playerId] = currentTime + 60
 		player:removePreyStamina(60)
 	end
-	player:setStamina(staminaMinutes)
+	if isStaminaEnabled then
+		player:setStamina(staminaMinutes)
+	end
 end
 
 local function useStaminaXpBoost(player)
@@ -138,8 +140,8 @@ local function useStaminaXpBoost(player)
 		return false
 	end
 
-	local staminaMinutes = player:getExpBoostStamina() / 60
-	if staminaMinutes == 0 then
+	local xpBoostMinutes = player:getXpBoostTime() / 60
+	if xpBoostMinutes == 0 then
 		return
 	end
 
@@ -149,23 +151,31 @@ local function useStaminaXpBoost(player)
 	end
 
 	local currentTime = os.time()
-	local timePassed = currentTime - nextUseXpStamina[playerId]
+	local timePassed = currentTime - _G.NextUseXpStamina[playerId]
 	if timePassed <= 0 then
 		return
 	end
 
+	local xpBoostLeftMinutesByDailyReward = player:kv():get("daily-reward-xp-boost") or 0
 	if timePassed > 60 then
-		if staminaMinutes > 2 then
-			staminaMinutes = staminaMinutes - 2
+		if xpBoostMinutes > 2 then
+			xpBoostMinutes = xpBoostMinutes - 2
+			if xpBoostLeftMinutesByDailyReward > 2 then
+				player:kv():set("daily-reward-xp-boost", xpBoostLeftMinutesByDailyReward - 2)
+			end
 		else
-			staminaMinutes = 0
+			xpBoostMinutes = 0
+			player:kv():remove("daily-reward-xp-boost")
 		end
-		nextUseXpStamina[playerId] = currentTime + 120
+		_G.NextUseXpStamina[playerId] = currentTime + 120
 	else
-		staminaMinutes = staminaMinutes - 1
-		nextUseXpStamina[playerId] = currentTime + 60
+		xpBoostMinutes = xpBoostMinutes - 1
+		if xpBoostLeftMinutesByDailyReward > 0 then
+			player:kv():set("daily-reward-xp-boost", xpBoostLeftMinutesByDailyReward - 1)
+		end
+		_G.NextUseXpStamina[playerId] = currentTime + 60
 	end
-	player:setExpBoostStamina(staminaMinutes * 60)
+	player:setXpBoostTime(xpBoostMinutes * 60)
 end
 
 local function useConcoctionTime(player)
@@ -174,34 +184,39 @@ local function useConcoctionTime(player)
 	end
 
 	local playerId = player:getId()
-	if not playerId or not nextUseConcoctionTime[playerId] then
+	if not playerId or not _G.NextUseConcoctionTime[playerId] then
 		return false
 	end
 
 	local currentTime = os.time()
-	local timePassed = currentTime - nextUseConcoctionTime[playerId]
+	local timePassed = currentTime - _G.NextUseConcoctionTime[playerId]
 	if timePassed <= 0 then
 		return false
 	end
 
 	local deduction = 60
 	if timePassed > 60 then
-		nextUseConcoctionTime[playerId] = currentTime + 120
+		_G.NextUseConcoctionTime[playerId] = currentTime + 120
 		deduction = 120
 	else
-		nextUseConcoctionTime[playerId] = currentTime + 60
+		_G.NextUseConcoctionTime[playerId] = currentTime + 60
 	end
 	Concoction.experienceTick(player, deduction)
 end
 
 function Player:onLookInBattleList(creature, distance)
+	if not creature then
+		return false
+	end
+
 	local description = "You see " .. creature:getDescription(distance)
 	if creature:isMonster() then
 		local master = creature:getMaster()
 		local summons = { "sorcerer familiar", "knight familiar", "druid familiar", "paladin familiar" }
 		if master and table.contains(summons, creature:getName():lower()) then
+			local familiarSummonTime = master:kv():get("familiar-summon-time") or 0
 			description = description .. " (Master: " .. master:getName() .. "). \z
-				It will disappear in " .. getTimeInWords(master:getStorageValue(Global.Storage.FamiliarSummon) - os.time())
+				It will disappear in " .. Game.getTimeInWords(familiarSummonTime - os.time())
 		end
 	end
 	if self:getGroup():getAccess() then
@@ -221,6 +236,8 @@ function Player:onLookInBattleList(creature, distance)
 	self:sendTextMessage(MESSAGE_LOOK, description)
 end
 
+local exhaust = {}
+
 function Player:onMoveItem(item, count, fromPosition, toPosition, fromCylinder, toCylinder)
 	if item:getActionId() == IMMOVABLE_ACTION_ID then
 		self:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
@@ -235,8 +252,8 @@ function Player:onMoveItem(item, count, fromPosition, toPosition, fromCylinder, 
 	end
 
 	-- Players cannot throw items on teleports
-	if blockTeleportTrashing and toPosition.x ~= CONTAINER_POSITION then
-		local thing = Tile(toPosition):getItemByType(ITEM_TYPE_TELEPORT)
+	if blockTeleportTrashing and tile and toPosition.x ~= CONTAINER_POSITION then
+		local thing = tile:getItemByType(ITEM_TYPE_TELEPORT)
 		if thing then
 			self:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
 			self:getPosition():sendMagicEffect(CONST_ME_POFF)
@@ -245,25 +262,32 @@ function Player:onMoveItem(item, count, fromPosition, toPosition, fromCylinder, 
 	end
 
 	-- SSA exhaust
-	local exhaust = {}
 	if toPosition.x == CONTAINER_POSITION and toPosition.y == CONST_SLOT_NECKLACE and item:getId() == ITEM_STONE_SKIN_AMULET then
-		local pid = self:getId()
-		if exhaust[pid] then
+		local playerId = self:getId()
+		if exhaust[playerId] then
 			self:sendCancelMessage(RETURNVALUE_YOUAREEXHAUSTED)
 			return false
 		end
 		exhaust[playerId] = true
-		addEvent(function()
-			exhaust[playerId] = false
+		addEvent(function(id)
+			exhaust[id] = nil
 		end, 2000, playerId)
 		return true
 	end
 
-	-- Bath tube
 	local toTile = Tile(toCylinder:getPosition())
-	local topDownItem = toTile:getTopDownItem()
-	if topDownItem and table.contains({ BATHTUB_EMPTY, BATHTUB_FILLED }, topDownItem:getId()) then
-		return false
+	if toTile then
+		local topDownItem = toTile:getTopDownItem()
+		if topDownItem then
+			local topDownItemItemId = topDownItem:getId()
+			if table.contains({ BATHTUB_EMPTY, BATHTUB_FILLED }, topDownItemItemId) then -- Bath tube
+				return false
+			elseif ItemType(topDownItemItemId):isPodium() then -- Podium
+				self:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
+				self:getPosition():sendMagicEffect(CONST_ME_POFF)
+				return false
+			end
+		end
 	end
 
 	-- Handle move items to the ground
@@ -297,7 +321,8 @@ function Player:onMoveItem(item, count, fromPosition, toPosition, fromCylinder, 
 	end
 
 	-- Reward System
-	if toPosition.x == CONTAINER_POSITION then
+	local containerThing = tile and tile:getItemByType(ITEM_TYPE_CONTAINER)
+	if containerThing and toPosition.x == CONTAINER_POSITION then
 		local containerId = toPosition.y - 64
 		local container = self:getContainerById(containerId)
 		if not container then
@@ -313,10 +338,12 @@ function Player:onMoveItem(item, count, fromPosition, toPosition, fromCylinder, 
 
 		-- The player also shouldn't be able to insert items into the boss corpse
 		local tileCorpse = Tile(container:getPosition())
-		for index, value in ipairs(tileCorpse:getItems() or {}) do
-			if value:getAttribute(ITEM_ATTRIBUTE_CORPSEOWNER) == 2 ^ 31 - 1 and value:getName() == container:getName() then
-				self:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
-				return false
+		if tileCorpse then
+			for index, value in ipairs(tileCorpse:getItems() or {}) do
+				if value:getAttribute(ITEM_ATTRIBUTE_CORPSEOWNER) == 2 ^ 31 - 1 and value:getName() == container:getName() then
+					self:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
+					return false
+				end
 			end
 		end
 	end
@@ -327,19 +354,20 @@ function Player:onMoveItem(item, count, fromPosition, toPosition, fromCylinder, 
 		return false
 	end
 
-	-- Players cannot throw items on reward chest
-	local tileChest = Tile(toPosition)
-	if tileChest and tileChest:getItemById(ITEM_REWARD_CHEST) then
-		self:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
-		self:getPosition():sendMagicEffect(CONST_ME_POFF)
-		return false
-	end
+	if tile then
+		-- Players cannot throw items on reward chest
+		if tile:getItemById(ITEM_REWARD_CHEST) then
+			self:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
+			self:getPosition():sendMagicEffect(CONST_ME_POFF)
+			return false
+		end
 
-	if tile and tile:getItemById(370) then
 		-- Trapdoor
-		self:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
-		self:getPosition():sendMagicEffect(CONST_ME_POFF)
-		return false
+		if tile:getItemById(370) then
+			self:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
+			self:getPosition():sendMagicEffect(CONST_ME_POFF)
+			return false
+		end
 	end
 
 	if not antiPush(self, item, count, fromPosition, toPosition, fromCylinder, toCylinder) then
@@ -351,9 +379,17 @@ end
 
 function Player:onItemMoved(item, count, fromPosition, toPosition, fromCylinder, toCylinder)
 	if IsRunningGlobalDatapack() then
+		-- The Secret Library Quest
+		if toPosition == Position(32460, 32928, 7) and item.itemid == 3578 then
+			toPosition:sendMagicEffect(CONST_ME_HEARTS)
+			self:say("You feed the turtle, now you may pass.", TALKTYPE_MONSTER_SAY)
+			Game.setStorageValue(Storage.Quest.U11_80.TheSecretLibrary.SmallIslands.Turtle, os.time() + 10 * 60)
+			item:remove(1)
+		end
+
 		-- Cults of Tibia begin
-		local frompos = Position(33023, 31904, 14) -- Checagem
-		local topos = Position(33052, 31932, 15) -- Checagem
+		local frompos = Position(33023, 31904, 14)
+		local topos = Position(33052, 31932, 15)
 		local removeItem = false
 		if self:getPosition():isInRange(frompos, topos) and item:getId() == 23729 then
 			local tile = Tile(toPosition)
@@ -390,15 +426,19 @@ end
 
 function Player:onMoveCreature(creature, fromPosition, toPosition)
 	local player = creature:getPlayer()
-	if player and onExerciseTraining[player:getId()] and not self:getGroup():hasFlag(PlayerFlag_CanPushAllCreatures) then
+	if player and _G.OnExerciseTraining[player:getId()] and not self:getGroup():hasFlag(PlayerFlag_CanPushAllCreatures) then
 		self:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
 		return false
 	end
 	return true
 end
 
-local function hasPendingReport(name, targetName, reportType)
-	name = self:getName():gsub("%s+", "_")
+local function hasPendingReport(playerGuid, targetName, reportType)
+	local player = Player(playerGuid)
+	if not player then
+		return false
+	end
+	local name = player:getName():gsub("%s+", "_")
 	FS.mkdir_p(string.format("%s/reports/players/%s", CORE_DIRECTORY, name))
 	local file = io.open(string.format("%s/reports/players/%s-%s-%d.txt", CORE_DIRECTORY, name, targetName, reportType), "r")
 	if file then
@@ -409,8 +449,8 @@ local function hasPendingReport(name, targetName, reportType)
 end
 
 function Player:onReportRuleViolation(targetName, reportType, reportReason, comment, translation)
-	name = self:getName()
-	if hasPendingReport(name, targetName, reportType) then
+	local name = self:getName()
+	if hasPendingReport(self:getGuid(), targetName, reportType) then
 		self:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Your report is being processed.")
 		return
 	end
@@ -503,19 +543,17 @@ function Player:onGainExperience(target, exp, rawExp)
 		self:addCondition(soulCondition)
 	end
 
-	-- Store Bonus
-	useStaminaXpBoost(self) -- Use store boost stamina
+	-- Apply XP Boost (Store or Daily Reward)
+	useStaminaXpBoost(self)
 
-	local Boost = self:getExpBoostStamina()
-	local stillHasBoost = Boost > 0
-	local storeXpBoostAmount = stillHasBoost and self:getStoreXpBoost() or 0
-
-	self:setStoreXpBoost(storeXpBoostAmount)
+	local xpBoostTimeLeft = self:getXpBoostTime()
+	local hasXpBoost = xpBoostTimeLeft > 0
+	local xpBoostPercent = hasXpBoost and self:getXpBoostPercent() or 0
 
 	-- Stamina Bonus
 	local staminaBonusXp = 1
 	if configManager.getBoolean(configKeys.STAMINA_SYSTEM) then
-		useStamina(self)
+		useStamina(self, true)
 		staminaBonusXp = self:getFinalBonusStamina()
 		self:setStaminaXpBoost(staminaBonusXp * 100)
 	end
@@ -523,12 +561,12 @@ function Player:onGainExperience(target, exp, rawExp)
 	-- Concoction System
 	useConcoctionTime(self)
 
-	-- Boosted creature
-	if target:getName():lower() == (Game.getBoostedCreature()):lower() then
+	-- Apply Boosted Creature Bonus
+	if target:getName():lower() == Game.getBoostedCreature():lower() then
 		exp = exp * 2
 	end
 
-	-- Prey system
+	-- Prey System
 	if configManager.getBoolean(configKeys.PREY_ENABLED) then
 		local monsterType = target:getType()
 		if monsterType and monsterType:raceId() > 0 then
@@ -536,18 +574,20 @@ function Player:onGainExperience(target, exp, rawExp)
 		end
 	end
 
+	-- VIP Bonus Experience
 	if configManager.getBoolean(configKeys.VIP_SYSTEM_ENABLED) then
 		local vipBonusExp = configManager.getNumber(configKeys.VIP_BONUS_EXP)
 		if vipBonusExp > 0 and self:isVip() then
-			vipBonusExp = (vipBonusExp > 100 and 100) or vipBonusExp
-			exp = exp * (1 + (vipBonusExp / 100))
+			exp = exp * (1 + math.min(vipBonusExp, 100) / 100)
 		end
 	end
 
-	local lowLevelBonuxExp = self:getFinalLowLevelBonus()
-	local baseRate = self:getFinalBaseRateExperience()
+	-- Final Adjustments: Low Level Bonus and Base Rate
+	local lowLevelBonusExp = self:getFinalLowLevelBonus()
+	local baseRateExp = self:getFinalBaseRateExperience()
 
-	return (exp + (exp * (storeXpBoostAmount / 100) + (exp * (lowLevelBonuxExp / 100)))) * staminaBonusXp * baseRate
+	-- Return final experience value
+	return (exp * (1 + xpBoostPercent / 100 + lowLevelBonusExp / 100)) * staminaBonusXp * baseRateExp
 end
 
 function Player:onLoseExperience(exp)
@@ -559,42 +599,35 @@ function Player:onGainSkillTries(skill, tries)
 	if IsRunningGlobalDatapack() and isSkillGrowthLimited(self, skill) then
 		return 0
 	end
+
 	if not APPLY_SKILL_MULTIPLIER then
 		return tries
 	end
 
-	-- Event scheduler skill rate
-	local STAGES_DEFAULT = nil
-	if configManager.getBoolean(configKeys.RATE_USE_STAGES) then
-		STAGES_DEFAULT = skillsStages
-	end
-	local SKILL_DEFAULT = self:getSkillLevel(skill)
-	local RATE_DEFAULT = configManager.getNumber(configKeys.RATE_SKILL)
+	-- Default skill rate settings
+	local rateSkillStages = configManager.getBoolean(configKeys.RATE_USE_STAGES) and skillsStages or nil
+	local currentSkillLevel = self:getSkillLevel(skill)
+	local baseRate = configManager.getNumber(configKeys.RATE_SKILL)
 
+	-- Special case for magic level
 	if skill == SKILL_MAGLEVEL then
-		-- Magic Level
-		if configManager.getBoolean(configKeys.RATE_USE_STAGES) then
-			STAGES_DEFAULT = magicLevelStages
-		end
-		SKILL_DEFAULT = self:getBaseMagicLevel()
-		RATE_DEFAULT = configManager.getNumber(configKeys.RATE_MAGIC)
+		rateSkillStages = configManager.getBoolean(configKeys.RATE_USE_STAGES) and magicLevelStages or nil
+		currentSkillLevel = self:getBaseMagicLevel()
+		baseRate = configManager.getNumber(configKeys.RATE_MAGIC)
 	end
 
-	local skillOrMagicRate = getRateFromTable(STAGES_DEFAULT, SKILL_DEFAULT, RATE_DEFAULT)
+	-- Calculate skill rate from stages and schedule
+	local skillRate = getRateFromTable(rateSkillStages, currentSkillLevel, baseRate)
+	skillRate = (SCHEDULE_SKILL_RATE ~= 100) and (skillRate * SCHEDULE_SKILL_RATE / 100) or skillRate
 
-	if SCHEDULE_SKILL_RATE ~= 100 then
-		skillOrMagicRate = math.max(0, (skillOrMagicRate * SCHEDULE_SKILL_RATE) / 100)
+	-- Apply VIP boost if applicable
+	if configManager.getBoolean(configKeys.VIP_SYSTEM_ENABLED) and self:isVip() then
+		local vipBonusSkill = math.min(configManager.getNumber(configKeys.VIP_BONUS_SKILL), 100)
+		skillRate = skillRate + (skillRate * (vipBonusSkill / 100))
 	end
 
-	if configManager.getBoolean(configKeys.VIP_SYSTEM_ENABLED) then
-		local vipBoost = configManager.getNumber(configKeys.VIP_BONUS_SKILL)
-		if vipBoost > 0 and self:isVip() then
-			vipBoost = (vipBoost > 100 and 100) or vipBoost
-			skillOrMagicRate = skillOrMagicRate + (skillOrMagicRate * (vipBoost / 100))
-		end
-	end
-
-	return tries / 100 * (skillOrMagicRate * 100)
+	-- Calculate and return the final experience gain
+	return tries * skillRate
 end
 
 function Player:onCombat(target, item, primaryDamage, primaryType, secondaryDamage, secondaryType)
@@ -618,25 +651,22 @@ function Player:onChangeZone(zone)
 
 		if configManager.getBoolean(configKeys.STAMINA_PZ) then
 			if zone == ZONE_PROTECTION then
-				if self:getStamina() < 2520 then
+				local stamina = self:getStamina()
+				if stamina < 2520 then
 					if not event then
 						local delay = configManager.getNumber(configKeys.STAMINA_ORANGE_DELAY)
-						if self:getStamina() > 2400 and self:getStamina() <= 2520 then
+						if stamina > 2340 and stamina <= 2520 then
 							delay = configManager.getNumber(configKeys.STAMINA_GREEN_DELAY)
 						end
 
-						local message = string.format("In protection zone. Every %i minutes, gain %i stamina.", delay, configManager.getNumber(configKeys.STAMINA_PZ_GAIN))
-						self:sendTextMessage(MESSAGE_STATUS, message)
+						local message = string.format("In protection zone. Recharging %i stamina every %i minutes.", configManager.getNumber(configKeys.STAMINA_PZ_GAIN), delay)
+						self:sendTextMessage(MESSAGE_FAILURE, message)
 						staminaBonus.eventsPz[self:getId()] = addEvent(addStamina, delay * 60 * 1000, nil, self:getId(), delay * 60 * 1000)
 					end
 				end
 			else
 				if event then
-					self:sendTextMessage(
-						MESSAGE_STATUS,
-						"You are no longer refilling stamina, \z
-                                         since you left a regeneration zone."
-					)
+					self:sendTextMessage(MESSAGE_FAILURE, "You are no longer refilling stamina, since you left a regeneration zone.")
 					stopEvent(event)
 					staminaBonus.eventsPz[self:getId()] = nil
 				end

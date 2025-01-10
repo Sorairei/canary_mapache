@@ -1,19 +1,21 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
  * Website: https://docs.opentibiabr.com/
  */
 
-#include "pch.hpp"
-
-#include "creatures/monsters/monster.hpp"
-#include "creatures/players/player.hpp"
-#include "config/configmanager.hpp"
-#include "game/game.hpp"
 #include "io/ioprey.hpp"
+
+#include "config/configmanager.hpp"
+#include "creatures/monsters/monsters.hpp"
+#include "creatures/players/player.hpp"
+#include "game/game.hpp"
+#include "lib/di/container.hpp"
+#include "lib/metrics/metrics.hpp"
+#include "server/network/message/networkmessage.hpp"
 
 // Prey class
 PreySlot::PreySlot(PreySlot_t id) :
@@ -62,8 +64,9 @@ void PreySlot::reloadMonsterGrid(std::vector<uint16_t> blackList, uint32_t level
 	// Disabling prey system if the server have less then 36 registered monsters on bestiary because:
 	// - Impossible to generate random lists without duplications on slots.
 	// - Stress the server with unnecessary loops.
-	std::map<uint16_t, std::string> bestiary = g_game().getBestiaryList();
+	const std::map<uint16_t, std::string> &bestiary = g_game().getBestiaryList();
 	if (bestiary.size() < 36) {
+		g_logger().error("[PreySlot::reloadMonsterGrid] - Bestiary size is less than 36, disabling prey system.");
 		return;
 	}
 
@@ -72,7 +75,7 @@ void PreySlot::reloadMonsterGrid(std::vector<uint16_t> blackList, uint32_t level
 	uint8_t stageThree;
 	uint8_t stageFour;
 	if (auto levelStage = static_cast<uint32_t>(std::floor(level / 100));
-		levelStage == 0) { // From level 0 to 99
+	    levelStage == 0) { // From level 0 to 99
 		stageOne = 3;
 		stageTwo = 3;
 		stageThree = 2;
@@ -106,7 +109,7 @@ void PreySlot::reloadMonsterGrid(std::vector<uint16_t> blackList, uint32_t level
 
 		blackList.push_back(raceId);
 		const auto mtype = g_monsters().getMonsterTypeByRaceId(raceId);
-		if (!mtype || mtype->info.experience == 0) {
+		if (!mtype || mtype->info.experience == 0 || !mtype->info.isPreyable || mtype->info.isPreyExclusive) {
 			continue;
 		} else if (stageOne != 0 && mtype->info.bestiaryStars <= 1) {
 			raceIdList.push_back(raceId);
@@ -153,7 +156,7 @@ void TaskHuntingSlot::reloadMonsterGrid(std::vector<uint16_t> blackList, uint32_
 	uint8_t stageThree;
 	uint8_t stageFour;
 	if (auto levelStage = static_cast<uint32_t>(std::floor(level / 100));
-		levelStage == 0) { // From level 0 to 99
+	    levelStage == 0) { // From level 0 to 99
 		stageOne = 3;
 		stageTwo = 3;
 		stageThree = 2;
@@ -187,7 +190,7 @@ void TaskHuntingSlot::reloadMonsterGrid(std::vector<uint16_t> blackList, uint32_
 
 		blackList.push_back(raceId);
 		const auto mtype = g_monsters().getMonsterTypeByRaceId(raceId);
-		if (!mtype || mtype->info.experience == 0) {
+		if (!mtype || mtype->info.experience == 0 || !mtype->info.isPreyable || mtype->info.isPreyExclusive) {
 			continue;
 		} else if (stageOne != 0 && mtype->info.bestiaryStars <= 1) {
 			raceIdList.push_back(raceId);
@@ -244,15 +247,19 @@ void TaskHuntingSlot::reloadReward() {
 	}
 }
 
+IOPrey &IOPrey::getInstance() {
+	return inject<IOPrey>();
+}
+
 // Prey/Task hunting global class
-void IOPrey::checkPlayerPreys(std::shared_ptr<Player> player, uint8_t amount) const {
+void IOPrey::checkPlayerPreys(const std::shared_ptr<Player> &player, uint8_t amount) const {
 	if (!player) {
 		return;
 	}
 
 	for (uint8_t slotId = PreySlot_First; slotId <= PreySlot_Last; slotId++) {
 		if (const auto &slot = player->getPreySlotById(static_cast<PreySlot_t>(slotId));
-			slot && slot->isOccupied()) {
+		    slot && slot->isOccupied()) {
 			if (slot->bonusTimeLeft <= amount) {
 				if (slot->option == PreyOption_AutomaticReroll) {
 					if (player->usePreyCards(static_cast<uint16_t>(g_configManager().getNumber(PREY_BONUS_REROLL_PRICE)))) {
@@ -275,6 +282,7 @@ void IOPrey::checkPlayerPreys(std::shared_ptr<Player> player, uint8_t amount) co
 
 					player->sendTextMessage(MESSAGE_STATUS, "You don't have enought prey cards to lock monster and bonus when the slot expire.");
 				} else {
+					slot->reloadMonsterGrid(player->getPreyBlackList(), player->getLevel());
 					player->sendTextMessage(MESSAGE_STATUS, "Your prey bonus has expired.");
 				}
 
@@ -288,7 +296,7 @@ void IOPrey::checkPlayerPreys(std::shared_ptr<Player> player, uint8_t amount) co
 	}
 }
 
-void IOPrey::parsePreyAction(std::shared_ptr<Player> player, PreySlot_t slotId, PreyAction_t action, PreyOption_t option, int8_t index, uint16_t raceId) const {
+void IOPrey::parsePreyAction(const std::shared_ptr<Player> &player, PreySlot_t slotId, PreyAction_t action, PreyOption_t option, int8_t index, uint16_t raceId) const {
 	const auto &slot = player->getPreySlotById(slotId);
 	if (!slot || slot->state == PreyDataState_Locked) {
 		player->sendMessageDialog("To unlock this prey slot first you must buy it on store.");
@@ -301,6 +309,8 @@ void IOPrey::parsePreyAction(std::shared_ptr<Player> player, PreySlot_t slotId, 
 			return;
 		} else if (slot->freeRerollTimeStamp <= OTSYS_TIME()) {
 			slot->freeRerollTimeStamp = OTSYS_TIME() + g_configManager().getNumber(PREY_FREE_REROLL_TIME) * 1000;
+		} else {
+			g_metrics().addCounter("balance_decrease", player->getPreyRerollPrice(), { { "player", player->getName() }, { "context", "prey_reroll" } });
 		}
 
 		slot->eraseBonus(true);
@@ -318,6 +328,7 @@ void IOPrey::parsePreyAction(std::shared_ptr<Player> player, PreySlot_t slotId, 
 		slot->selectedRaceId = 0;
 		slot->state = PreyDataState_ListSelection;
 	} else if (action == PreyAction_ListAll_Selection) {
+		const auto mtype = g_monsters().getMonsterTypeByRaceId(raceId);
 		if (slot->isOccupied()) {
 			player->sendMessageDialog("You already have an active monster on this prey slot.");
 			return;
@@ -326,6 +337,9 @@ void IOPrey::parsePreyAction(std::shared_ptr<Player> player, PreySlot_t slotId, 
 			return;
 		} else if (player->getPreyWithMonster(raceId)) {
 			player->sendMessageDialog("This creature is already selected on another slot.");
+			return;
+		} else if (mtype && !mtype->info.isPreyable) {
+			player->sendMessageDialog("This creature can't be select on prey. Please choose another one.");
 			return;
 		}
 
@@ -388,7 +402,7 @@ void IOPrey::parsePreyAction(std::shared_ptr<Player> player, PreySlot_t slotId, 
 	player->reloadPreySlot(slotId);
 }
 
-void IOPrey::parseTaskHuntingAction(std::shared_ptr<Player> player, PreySlot_t slotId, PreyTaskAction_t action, bool upgrade, uint16_t raceId) const {
+void IOPrey::parseTaskHuntingAction(const std::shared_ptr<Player> &player, PreySlot_t slotId, PreyTaskAction_t action, bool upgrade, uint16_t raceId) const {
 	const auto &slot = player->getTaskHuntingSlotById(slotId);
 	if (!slot || slot->state == PreyTaskDataState_Locked) {
 		player->sendMessageDialog("To unlock this task hunting slot first you must buy it on store.");
@@ -406,6 +420,8 @@ void IOPrey::parseTaskHuntingAction(std::shared_ptr<Player> player, PreySlot_t s
 			return;
 		} else if (slot->freeRerollTimeStamp <= OTSYS_TIME()) {
 			slot->freeRerollTimeStamp = OTSYS_TIME() + g_configManager().getNumber(TASK_HUNTING_FREE_REROLL_TIME) * 1000;
+		} else {
+			g_metrics().addCounter("balance_decrease", player->getTaskHuntingRerollPrice(), { { "player", player->getName() }, { "context", "hunting_task_reroll" } });
 		}
 
 		slot->eraseTask();
@@ -465,6 +481,7 @@ void IOPrey::parseTaskHuntingAction(std::shared_ptr<Player> player, PreySlot_t s
 			return;
 		}
 
+		g_metrics().addCounter("balance_decrease", player->getTaskHuntingRerollPrice(), { { "player", player->getName() }, { "context", "hunting_task_cancel" } });
 		slot->eraseTask();
 		slot->reloadReward();
 		slot->state = PreyTaskDataState_Selection;
@@ -584,7 +601,11 @@ void IOPrey::initializeTaskHuntOptions() {
 		msg.add<uint16_t>(option->secondKills);
 		msg.add<uint16_t>(option->secondReward);
 	});
-	baseDataMessage = msg;
+	m_baseDataMessage = msg;
+}
+
+NetworkMessage IOPrey::getTaskHuntingBaseDate() const {
+	return m_baseDataMessage;
 }
 
 const std::unique_ptr<TaskHuntingOption> &IOPrey::getTaskRewardOption(const std::unique_ptr<TaskHuntingSlot> &slot) const {

@@ -1,6 +1,6 @@
 /**
  * Canary - A free and open-source MMORPG server emulator
- * Copyright (©) 2019-2022 OpenTibiaBR <opentibiabr@outlook.com>
+ * Copyright (©) 2019-2024 OpenTibiaBR <opentibiabr@outlook.com>
  * Repository: https://github.com/opentibiabr/canary
  * License: https://github.com/opentibiabr/canary/blob/main/LICENSE
  * Contributors: https://github.com/opentibiabr/canary/graphs/contributors
@@ -9,79 +9,9 @@
 
 #pragma once
 
-#include "lua/scripts/luascript.hpp"
-
-class GameFunctions final : LuaScriptInterface {
+class GameFunctions {
 public:
-	static void init(lua_State* L) {
-		registerTable(L, "Game");
-
-		registerMethod(L, "Game", "createNpcType", GameFunctions::luaGameCreateNpcType);
-		registerMethod(L, "Game", "createMonsterType", GameFunctions::luaGameCreateMonsterType);
-
-		registerMethod(L, "Game", "getSpectators", GameFunctions::luaGameGetSpectators);
-
-		registerMethod(L, "Game", "getBoostedCreature", GameFunctions::luaGameGetBoostedCreature);
-		registerMethod(L, "Game", "getBestiaryList", GameFunctions::luaGameGetBestiaryList);
-
-		registerMethod(L, "Game", "getPlayers", GameFunctions::luaGameGetPlayers);
-		registerMethod(L, "Game", "loadMap", GameFunctions::luaGameLoadMap);
-		registerMethod(L, "Game", "loadMapChunk", GameFunctions::luaGameloadMapChunk);
-
-		registerMethod(L, "Game", "getMonsterCount", GameFunctions::luaGameGetMonsterCount);
-		registerMethod(L, "Game", "getPlayerCount", GameFunctions::luaGameGetPlayerCount);
-		registerMethod(L, "Game", "getNpcCount", GameFunctions::luaGameGetNpcCount);
-		registerMethod(L, "Game", "getMonsterTypes", GameFunctions::luaGameGetMonsterTypes);
-
-		registerMethod(L, "Game", "getTowns", GameFunctions::luaGameGetTowns);
-		registerMethod(L, "Game", "getHouses", GameFunctions::luaGameGetHouses);
-
-		registerMethod(L, "Game", "getGameState", GameFunctions::luaGameGetGameState);
-		registerMethod(L, "Game", "setGameState", GameFunctions::luaGameSetGameState);
-
-		registerMethod(L, "Game", "getWorldType", GameFunctions::luaGameGetWorldType);
-		registerMethod(L, "Game", "setWorldType", GameFunctions::luaGameSetWorldType);
-
-		registerMethod(L, "Game", "getReturnMessage", GameFunctions::luaGameGetReturnMessage);
-
-		registerMethod(L, "Game", "createItem", GameFunctions::luaGameCreateItem);
-		registerMethod(L, "Game", "createContainer", GameFunctions::luaGameCreateContainer);
-		registerMethod(L, "Game", "createMonster", GameFunctions::luaGameCreateMonster);
-		registerMethod(L, "Game", "createNpc", GameFunctions::luaGameCreateNpc);
-		registerMethod(L, "Game", "generateNpc", GameFunctions::luaGameGenerateNpc);
-		registerMethod(L, "Game", "createTile", GameFunctions::luaGameCreateTile);
-		registerMethod(L, "Game", "createBestiaryCharm", GameFunctions::luaGameCreateBestiaryCharm);
-
-		registerMethod(L, "Game", "createItemClassification", GameFunctions::luaGameCreateItemClassification);
-
-		registerMethod(L, "Game", "getBestiaryCharm", GameFunctions::luaGameGetBestiaryCharm);
-
-		registerMethod(L, "Game", "startRaid", GameFunctions::luaGameStartRaid);
-
-		registerMethod(L, "Game", "getClientVersion", GameFunctions::luaGameGetClientVersion);
-
-		registerMethod(L, "Game", "reload", GameFunctions::luaGameReload);
-
-		registerMethod(L, "Game", "hasDistanceEffect", GameFunctions::luaGameHasDistanceEffect);
-		registerMethod(L, "Game", "hasEffect", GameFunctions::luaGameHasEffect);
-		registerMethod(L, "Game", "getOfflinePlayer", GameFunctions::luaGameGetOfflinePlayer);
-		registerMethod(L, "Game", "getNormalizedPlayerName", GameFunctions::luaGameGetNormalizedPlayerName);
-		registerMethod(L, "Game", "getNormalizedGuildName", GameFunctions::luaGameGetNormalizedGuildName);
-
-		registerMethod(L, "Game", "addInfluencedMonster", GameFunctions::luaGameAddInfluencedMonster);
-		registerMethod(L, "Game", "removeInfluencedMonster", GameFunctions::luaGameRemoveInfluencedMonster);
-		registerMethod(L, "Game", "getInfluencedMonsters", GameFunctions::luaGameGetInfluencedMonsters);
-		registerMethod(L, "Game", "makeFiendishMonster", GameFunctions::luaGameMakeFiendishMonster);
-		registerMethod(L, "Game", "removeFiendishMonster", GameFunctions::luaGameRemoveFiendishMonster);
-		registerMethod(L, "Game", "getFiendishMonsters", GameFunctions::luaGameGetFiendishMonsters);
-		registerMethod(L, "Game", "getBoostedBoss", GameFunctions::luaGameGetBoostedBoss);
-
-		registerMethod(L, "Game", "getLadderIds", GameFunctions::luaGameGetLadderIds);
-		registerMethod(L, "Game", "getDummies", GameFunctions::luaGameGetDummies);
-
-		registerMethod(L, "Game", "getTalkActions", GameFunctions::luaGameGetTalkActions);
-		registerMethod(L, "Game", "getEventCallbacks", GameFunctions::luaGameGetEventCallbacks);
-	}
+	static void init(lua_State* L);
 
 private:
 	static int luaGameCreateMonsterType(lua_State* L);
@@ -96,6 +26,7 @@ private:
 	static int luaGameLoadMap(lua_State* L);
 	static int luaGameloadMapChunk(lua_State* L);
 
+	static int luaGameGetExperienceForLevel(lua_State* L);
 	static int luaGameGetMonsterCount(lua_State* L);
 	static int luaGameGetPlayerCount(lua_State* L);
 	static int luaGameGetNpcCount(lua_State* L);
@@ -150,4 +81,11 @@ private:
 
 	static int luaGameGetTalkActions(lua_State* L);
 	static int luaGameGetEventCallbacks(lua_State* L);
+
+	static int luaGameRegisterAchievement(lua_State* L);
+	static int luaGameGetAchievementInfoById(lua_State* L);
+	static int luaGameGetAchievementInfoByName(lua_State* L);
+	static int luaGameGetSecretAchievements(lua_State* L);
+	static int luaGameGetPublicAchievements(lua_State* L);
+	static int luaGameGetAchievements(lua_State* L);
 };

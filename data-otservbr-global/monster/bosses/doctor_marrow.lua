@@ -13,11 +13,11 @@ monster.outfit = {
 	lookMount = 0,
 }
 
-monster.health = 1800
-monster.maxHealth = 1800
+monster.health = 120000
+monster.maxHealth = 120000
 monster.race = "blood"
 monster.corpse = 18074
-monster.speed = 125
+monster.speed = 180
 monster.manaCost = 0
 
 monster.changeTarget = {
@@ -26,8 +26,8 @@ monster.changeTarget = {
 }
 
 monster.strategiesTarget = {
-	nearest = 80,
-	health = 10,
+	nearest = 60,
+	health = 30,
 	damage = 10,
 }
 
@@ -65,12 +65,17 @@ monster.voices = {
 
 monster.attacks = {
 	{ name = "melee", interval = 2000, chance = 100, minDamage = 0, maxDamage = -2800 },
+	{ name = "combat", interval = 3000, chance = 20, type = COMBAT_LIFEDRAIN, minDamage = -50, maxDamage = -2800, effect = CONST_ME_MAGIC_RED, target = false, radius = 3 },
+	{ name = "doctor marrow explosion", interval = 10000, chance = 25, target = true, range = 1 },
+	{ name = "root", interval = 4000, chance = 10, target = true },
+	{ name = "fear", interval = 3500, chance = 10, target = true },
 }
 
 monster.defenses = {
 	defense = 54,
 	armor = 59,
 	mitigation = 3.7,
+	{ name = "combat", interval = 2000, chance = 25, type = COMBAT_HEALING, minDamage = 900, maxDamage = 2400, effect = CONST_ME_MAGIC_BLUE, target = false },
 }
 
 monster.elements = {
@@ -92,19 +97,5 @@ monster.immunities = {
 	{ type = "invisible", condition = true },
 	{ type = "bleed", condition = false },
 }
-
-mType.onThink = function(monster, interval) end
-
-mType.onAppear = function(monster, creature)
-	if monster:getType():isRewardBoss() then
-		monster:setReward(true)
-	end
-end
-
-mType.onDisappear = function(monster, creature) end
-
-mType.onMove = function(monster, creature, fromPosition, toPosition) end
-
-mType.onSay = function(monster, creature, type, message) end
 
 mType:register(monster)
